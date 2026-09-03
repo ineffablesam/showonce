@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
+import { BrandMark } from '../components/ui/BrandMark'
 import { Icon } from '../components/ui/Icon'
 import type { IconName } from '../components/ui/Icon'
 
@@ -108,7 +109,7 @@ export function Sidebar({
       </button>
       <Link className="brand" to="/">
         <span className="brand__mark">
-          <Icon name="spark" />
+          <BrandMark height={14} width={18} />
         </span>
         <span>ShowOnce</span>
       </Link>

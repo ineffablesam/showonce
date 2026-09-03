@@ -14,7 +14,7 @@ import { compareProcedureToRecipient } from '../domain/adaptation/compareProcedu
 import { executeCommand } from '../domain/commands/executeCommand'
 import {
   applyRecipientCommand,
-  completeRecipientSubmission,
+  attestAndSubmitRenewal,
   createDemoAccount,
   createHelpRequest,
   createRecipientAccount,
@@ -25,7 +25,6 @@ import type {
   AccountState,
   ActivityEvent,
   Command,
-  Confirmation,
   RecipientWorkflowRun,
 } from '../domain/model'
 import { repositories } from '../domain/repositories/appRepositories'
@@ -39,9 +38,7 @@ function submissionHintForPhase(
 ): string {
   switch (phase) {
     case 'confirmation':
-      return 'Confirm in the ShowOnce panel to continue →'
-    case 'confirmed':
-      return 'Confirmed — submit in the ShowOnce panel →'
+      return 'Awaiting your approval in the ShowOnce panel →'
     case 'complete':
       return 'Submitted and confirmed.'
     default:
@@ -64,17 +61,19 @@ function RecipientRoute() {
   const { publicToken } = Route.useParams()
   const { preview, scenario } = Route.useSearch()
   const queryClient = useQueryClient()
-  const [confirmation, setConfirmation] = useState<Confirmation>()
   const [choosing, setChoosing] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [submissionError, setSubmissionError] = useState<string>()
   const [addressConfirmed, setAddressConfirmed] = useState(true)
   const [lastInvocation, setLastInvocation] = useState<WebMCPInvocation | null>(
     null,
   )
-  const clearConfirmation = useCallback(() => setConfirmation(undefined), [])
-  const onInvocation = useCallback((tool: string) => {
-    setLastInvocation({ tool, at: Date.now() })
-  }, [])
+  const onInvocation = useCallback(
+    (tool: string, source: 'webmcp' | 'human' = 'webmcp') => {
+      setLastInvocation({ tool, at: Date.now(), source })
+    },
+    [],
+  )
   const accountId = scenario === 'normal' ? 'mom-normal' : 'mom-unavailable'
 
   const handoff = useQuery({
@@ -193,13 +192,10 @@ function RecipientRoute() {
     handoff: handoff.data ?? null,
     account: account.data ?? null,
     run: workflow.data ?? null,
-    confirmation,
     preview,
     onAccount: setAccount,
     onRun: setRun,
     onRequestHelper: askHelper,
-    onConfirmationExpired: clearConfirmation,
-    onSubmissionError: setSubmissionError,
     onInvocation,
   })
 
@@ -213,13 +209,12 @@ function RecipientRoute() {
         {
           handoffToken: publicToken,
           policy: handoff.data?.policy,
-          confirmation,
         },
       )
       setAccount(result.state)
       return result
     },
-    [account.data, confirmation, handoff.data?.policy, publicToken, setAccount],
+    [account.data, handoff.data?.policy, publicToken, setAccount],
   )
 
   const procedure = handoff.data?.procedure
@@ -296,53 +291,45 @@ function RecipientRoute() {
     })
   }
 
-  const confirm = async () => {
-    if (preview) return
-    if (!account.data) return
-    const result =
-      await repositories.handoffs.createConfirmation(publicToken)
-    setConfirmation(result)
-    setSubmissionError(undefined)
-    await repositories.handoffs.transitionByPublicToken(
-      publicToken,
-      'waiting_confirmation',
-    )
-    setRun({ phase: 'confirmed', lastOutcome: 'human_confirmation' })
-  }
-
-  const submit = async () => {
+  // The single atomic human action: check the attestation box, click once,
+  // and — in one call — a HUMAN `recipient_attestation` event is recorded
+  // and `submitRenewal()` runs through the exact same domain command layer
+  // used everywhere else. No second WebMCP turn is required or possible.
+  const attestAndSubmit = async () => {
     if (preview) return
     if (
       !account.data ||
       !workflow.data ||
-      !confirmation ||
       account.data.submittedAt !== null
     ) return
-    const result = await completeRecipientSubmission(
-      repositories,
-      account.data,
-      workflow.data,
-      confirmation,
-      { handoffToken: publicToken, source: 'human' },
-    )
-    if (result.ok) {
-      queryClient.setQueryData(['account', accountId], result.account)
-      queryClient.setQueryData(
-        ['recipient-run', publicToken, scenario, preview],
-        result.run,
+    setSubmitting(true)
+    setSubmissionError(undefined)
+    try {
+      const result = await attestAndSubmitRenewal(
+        repositories,
+        account.data,
+        workflow.data,
+        { handoffToken: publicToken },
       )
-      setSubmissionError(undefined)
-    } else {
-      queryClient.setQueryData(
-        ['recipient-run', publicToken, scenario, preview],
-        result.run,
-      )
-      if (result.reason === 'confirmation_expired') setConfirmation(undefined)
-      setSubmissionError(
-        result.reason === 'confirmation_expired'
-          ? 'Confirmation expired. Confirm again to retry.'
-          : 'Completion failed. Your renewal was not submitted; please retry.',
-      )
+      onInvocation('recipient_attestation', 'human')
+      if (result.ok) {
+        onInvocation('submit_renewal', 'human')
+        queryClient.setQueryData(['account', accountId], result.account)
+        queryClient.setQueryData(
+          ['recipient-run', publicToken, scenario, preview],
+          result.run,
+        )
+      } else {
+        queryClient.setQueryData(
+          ['recipient-run', publicToken, scenario, preview],
+          result.run,
+        )
+        setSubmissionError(
+          'Completion failed. Your renewal was not submitted; please retry.',
+        )
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -438,7 +425,11 @@ function RecipientRoute() {
               />
             </div>
             <aside className="northstar-shell__panel">
-              <WebMCPLivePanel lastInvocation={lastInvocation} webmcp={webmcp} />
+              <WebMCPLivePanel
+                lastInvocation={lastInvocation}
+                waitingOnHuman={phase === 'confirmation'}
+                webmcp={webmcp}
+              />
               {phase === 'adapted' ||
               phase === 'awaiting_helper' ||
               phase === 'helper_resolved' ? (
@@ -489,23 +480,23 @@ function RecipientRoute() {
                     </Card>
                   ) : null}
                 </>
-              ) : phase === 'confirmation' || phase === 'confirmed' ? (
+              ) : phase === 'confirmation' ? (
                 <ConfirmationGate
-                  confirmation={confirmation}
+                  account={account.data}
+                  differences={adaptation.differences}
                   monthlyPrice={
                     account.data.availablePlans.find(
                       (plan) => plan.id === account.data.selectedPlanId,
                     )?.monthlyPrice ?? 0
                   }
-                  onConfirm={confirm}
-                  onSubmit={submit}
+                  onConfirmAndSubmit={attestAndSubmit}
                   planName={
                     account.data.availablePlans.find(
                       (plan) => plan.id === account.data.selectedPlanId,
                     )?.name ?? 'Selected plan'
                   }
                   recipientName={recipientName}
-                  submitting={false}
+                  submitting={submitting}
                 />
               ) : (
                 <Card className="completion-card completion-card--compact">
@@ -567,38 +558,30 @@ function useRecipientWebMCP({
   handoff,
   account,
   run,
-  confirmation,
   preview,
   onAccount,
   onRun,
   onRequestHelper,
-  onConfirmationExpired,
-  onSubmissionError,
   onInvocation,
 }: {
   publicToken: string
   handoff: PublicHandoff | null
   account: AccountState | null
   run: RecipientWorkflowRun | null
-  confirmation?: Confirmation
   preview: boolean
   onAccount: (account: AccountState) => void
   onRun: (update: Partial<RecipientWorkflowRun>) => void
   onRequestHelper: () => Promise<ReturnType<typeof createHelpRequest> extends Promise<infer T> ? T : never>
-  onConfirmationExpired: () => void
-  onSubmissionError: (message: string | undefined) => void
   onInvocation: (tool: string) => void
 }) {
   const accountRef = useRef(account)
   const handoffRef = useRef(handoff)
   const runRef = useRef(run)
-  const confirmationRef = useRef(confirmation)
   const startedRef = useRef(false)
   const statusTransitionRef = useRef<Promise<void>>(Promise.resolve())
   accountRef.current = account
   handoffRef.current = handoff
   runRef.current = run
-  confirmationRef.current = confirmation
 
   const markRunning = useCallback(async () => {
     if (startedRef.current) {
@@ -619,36 +602,29 @@ function useRecipientWebMCP({
       if (!startedRef.current) {
         void markRunning()
       }
+      // No WebMCP tool ever issues `submit_renewal` — that only happens
+      // inside the human-only `attestAndSubmitRenewal` handler — so every
+      // command executed here is a safe, reversible preparation step.
       const result = executeCommand(
         {
           state: current,
           source: 'webmcp',
           now: Date.now(),
           createId: () => crypto.randomUUID(),
-          confirmation: confirmationRef.current,
         },
         command,
       )
-      if (command.type !== 'submit_renewal') {
-        accountRef.current = result.state
-        onAccount(result.state)
-        void repositories.activity.appendForHandoffToken(publicToken, {
-          id: `activity-${result.event.id}`,
-          kind: 'command',
-          timestamp: result.event.timestamp,
-          source: 'webmcp',
-          commandType: result.event.commandType,
-          policy: result.event.policy,
-          outcome: result.ok ? 'applied' : 'refused',
-        })
-      } else if (!result.ok) {
-        if (result.reason === 'confirmation_expired') onConfirmationExpired()
-        onSubmissionError(
-          result.reason === 'confirmation_expired'
-            ? 'Confirmation expired. Confirm again to retry.'
-            : 'Submission was refused. Review the selected plan and confirm again.',
-        )
-      }
+      accountRef.current = result.state
+      onAccount(result.state)
+      void repositories.activity.appendForHandoffToken(publicToken, {
+        id: `activity-${result.event.id}`,
+        kind: 'command',
+        timestamp: result.event.timestamp,
+        source: 'webmcp',
+        commandType: result.event.commandType,
+        policy: result.event.policy,
+        outcome: result.ok ? 'applied' : 'refused',
+      })
       if (result.reason === 'judgment_required') {
         statusTransitionRef.current = statusTransitionRef.current.then(() =>
           repositories.handoffs
@@ -658,13 +634,7 @@ function useRecipientWebMCP({
       }
       return result
     },
-    [
-      markRunning,
-      onAccount,
-      onConfirmationExpired,
-      onSubmissionError,
-      publicToken,
-    ],
+    [markRunning, onAccount, publicToken],
   )
 
   const activeHandoff = handoff
@@ -687,43 +657,6 @@ function useRecipientWebMCP({
       },
       getInitialState: createDemoAccount,
       getActiveHandoff: () => activeHandoff,
-      getConfirmation: () => confirmationRef.current,
-      completeHandoff: async (confirmationToken: string) => {
-        const currentAccount = accountRef.current
-        const currentRun = runRef.current
-        const currentConfirmation = confirmationRef.current
-        if (
-          !currentAccount ||
-          !currentRun ||
-          !currentConfirmation ||
-          currentConfirmation.token !== confirmationToken
-        ) {
-          throw new Error('Confirmation context is unavailable')
-        }
-        const completed = await completeRecipientSubmission(
-          repositories,
-          currentAccount,
-          currentRun,
-          currentConfirmation,
-          { handoffToken: publicToken },
-        )
-        if (!completed.ok) {
-          if (completed.reason === 'confirmation_expired') {
-            onConfirmationExpired()
-          }
-          onSubmissionError(
-            completed.reason === 'confirmation_expired'
-              ? 'Confirmation expired. Confirm again to retry.'
-              : 'Completion failed. Your renewal was not submitted; please retry.',
-          )
-          throw new Error(completed.reason)
-        }
-        accountRef.current = completed.account
-        runRef.current = completed.run
-        onAccount(completed.account)
-        onRun({ phase: 'complete', lastOutcome: 'submitted' })
-        onSubmissionError(undefined)
-      },
       requestHelper: onRequestHelper,
       getActiveHelpRequestId: () => runRef.current?.helperRequestId,
       onToolStart: markRunning,
@@ -744,6 +677,9 @@ function useRecipientWebMCP({
             )
           }
         }
+        // The agent's last possible step: once it has prepared a valid
+        // renewal, the run is (already) in the AWAITING HUMAN APPROVAL
+        // phase and there is nothing left for any WebMCP tool to do.
       },
       now: Date.now,
       createId: () => crypto.randomUUID(),
@@ -755,8 +691,6 @@ function useRecipientWebMCP({
       onInvocation,
       onRequestHelper,
       onRun,
-      onConfirmationExpired,
-      onSubmissionError,
       preview,
       publicToken,
     ],

@@ -1,1 +1,0 @@
-import{x as e}from"./index-CnoFQthm.js";var t=e;export{t as component};

@@ -21,7 +21,7 @@
 - Normal adaptation and plan-divergence paths
 - Helper decision and synchronized resume
 - Confirmation gate and completion summary
-- Resettable Nexa Benefits demo
+- Resettable Northstar Benefits demo
 
 ## Potential impact
 

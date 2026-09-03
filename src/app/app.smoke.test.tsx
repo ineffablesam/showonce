@@ -181,16 +181,16 @@ describe('ShowOnce product routes', () => {
     await user.click(
       await screen.findByRole('button', { name: /choose gold at \$142/i }),
     )
+    // One atomic human action: check the personal attestation, then a
+    // single "Confirm & submit" click both attests and submits — no
+    // separate "confirm" step, no second WebMCP turn.
     await user.click(
       await screen.findByRole('checkbox', {
-        name: /i’m mom and i approve/i,
+        name: /i am mom and i approve/i,
       }),
     )
     await user.click(
-      screen.getByRole('button', { name: /confirm for 120 seconds/i }),
-    )
-    await user.click(
-      await screen.findByRole('button', { name: /^submit renewal$/i }),
+      screen.getByRole('button', { name: /confirm & submit/i }),
     )
 
     expect(await screen.findByText(/mom’s benefits are submitted/i)).toBeTruthy()
@@ -276,18 +276,15 @@ describe('ShowOnce product routes', () => {
     )
     await user.click(
       await screen.findByRole('checkbox', {
-        name: /i’m mom and i approve/i,
+        name: /i am mom and i approve/i,
       }),
-    )
-    await user.click(
-      screen.getByRole('button', { name: /confirm for 120 seconds/i }),
     )
     const complete = vi
       .spyOn(repositories.handoffs, 'complete')
       .mockRejectedValueOnce(new Error('temporary network failure'))
 
     await user.click(
-      await screen.findByRole('button', { name: /^submit renewal$/i }),
+      screen.getByRole('button', { name: /confirm & submit/i }),
     )
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Completion failed. Your renewal was not submitted; please retry.',
@@ -295,7 +292,7 @@ describe('ShowOnce product routes', () => {
     expect((await repositories.accounts.get('mom-normal'))?.submittedAt).toBeNull()
 
     await user.click(
-      screen.getByRole('button', { name: /^submit renewal$/i }),
+      screen.getByRole('button', { name: /confirm & submit/i }),
     )
     expect(complete).toHaveBeenCalledTimes(2)
     expect(await screen.findByText(/mom’s benefits are submitted/i)).toBeTruthy()

@@ -8,6 +8,7 @@ export const ACTION_POLICIES = {
   preview_renewal: 'state_check',
   select_plan: 'availability_checked',
   create_confirmation: 'confirmation_required',
+  recipient_attestation: 'confirmation_required',
   submit_renewal: 'confirmation_required',
   record_decision: 'judgment_required',
 } as const satisfies Record<Command['type'], TransferPolicy>

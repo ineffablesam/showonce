@@ -204,7 +204,7 @@ describe('focused route-scoped WebMCP tools', () => {
       'benefits_preview_renewal',
       'showonce_request_helper',
       'showonce_get_helper_decision',
-      'benefits_submit_renewal',
+      'benefits_prepare_renewal',
     ])
     expect(SHOWONCE_TOOLS.some(({ name }) => name.includes('confirmation'))).toBe(
       false,
@@ -223,46 +223,52 @@ describe('focused route-scoped WebMCP tools', () => {
     ])
   })
 
-  it('returns requires_user_confirmation before UI confirmation', async () => {
+  it('refuses to prepare a renewal without a selected plan', async () => {
     const fixture = setup()
+    fixture.context.getRecipientState = () => ({
+      ...state,
+      selectedPlanId: 'does-not-exist',
+    })
     await registerWebMCPTools(fixture.context)
-    const submit = fixture.registrations.find(
-      ({ name }) => name === 'benefits_submit_renewal',
+    const prepare = fixture.registrations.find(
+      ({ name }) => name === 'benefits_prepare_renewal',
     )
-    const submitResult = await submit?.execute(
+    const prepareResult = await prepare?.execute(
       {},
       { signal: new AbortController().signal },
     )
-    expect(submitResult).toEqual({
-      ok: false,
-      reason: 'requires_user_confirmation',
-    })
+    expect(prepareResult).toEqual({ ok: false, reason: 'plan_required' })
     expect(fixture.execute).not.toHaveBeenCalled()
     expect(fixture.context.repositories.activity.append).toHaveBeenCalledWith(
       expect.objectContaining({
-        toolName: 'benefits_submit_renewal',
+        toolName: 'benefits_prepare_renewal',
         outcome: 'refused',
       }),
     )
   })
 
-  it('submits after a fresh human UI confirmation exists', async () => {
-    const confirmation = {
-      token: 'human-token',
-      createdAt: 10,
-      expiresAt: 130,
-    }
-    const fixture = setup(confirmation)
+  it('prepares a renewal summary once a plan is selected — and this is the last step any agent can take', async () => {
+    const fixture = setup()
+    fixture.context.getRecipientState = () => ({ ...state, selectedPlanId: 'gold' })
     await registerWebMCPTools(fixture.context)
-    const submit = fixture.registrations.find(
-      ({ name }) => name === 'benefits_submit_renewal',
+    const prepare = fixture.registrations.find(
+      ({ name }) => name === 'benefits_prepare_renewal',
     )
-    await submit?.execute({}, { signal: new AbortController().signal })
-    expect(fixture.execute).toHaveBeenCalledWith({
-      type: 'submit_renewal',
-      confirmationToken: 'human-token',
+    const prepareResult = await prepare?.execute(
+      {},
+      { signal: new AbortController().signal },
+    )
+    expect(prepareResult).toMatchObject({
+      ok: true,
+      awaitingHumanApproval: true,
+      summary: expect.objectContaining({ planId: 'gold', monthlyPrice: 142 }),
     })
-    expect(fixture.context.completeHandoff).toHaveBeenCalledWith('human-token')
+    expect(fixture.execute).toHaveBeenCalledWith({ type: 'preview_renewal' })
+    // No tool named benefits_submit_renewal (or anything else) exists for an
+    // agent to call next — submission is exclusively a human UI action.
+    expect(
+      SHOWONCE_TOOLS.some(({ name }) => name.includes('submit')),
+    ).toBe(false)
   })
 
   it('runs registered handlers through atomic completion and activity', async () => {
@@ -339,8 +345,6 @@ describe('focused route-scoped WebMCP tools', () => {
       ...createRecipientAccount('normal'),
       selectedPlanId: 'silver',
     }
-    const confirmationRef: { current?: Confirmation } = {}
-    let submittedState: AccountState | undefined
     let id = 0
     const now = baseTime + 10
     const request: HelpRequest = {
@@ -374,21 +378,19 @@ describe('focused route-scoped WebMCP tools', () => {
         helpRequests: recipient.helpRequests,
       },
       execute: (command) => {
+        // No WebMCP tool ever issues `submit_renewal` any more, so every
+        // command an agent can run through this harness safely updates the
+        // recipient's own in-memory state.
         const commandResult = executeCommand(
           {
             state: account,
             source: 'webmcp',
             now,
-            confirmation: confirmationRef.current,
             createId: () => `command-${++id}`,
           },
           command,
         )
-        if (command.type === 'submit_renewal') {
-          submittedState = commandResult.state
-        } else {
-          account = commandResult.state
-        }
+        account = commandResult.state
         return commandResult
       },
       compare: compareProcedureToRecipient,
@@ -410,11 +412,6 @@ describe('focused route-scoped WebMCP tools', () => {
         return request
       },
       getActiveHelpRequestId: () => requestToken,
-      getConfirmation: () => confirmationRef.current,
-      completeHandoff: async (confirmationToken) => {
-        await recipient.handoffs.complete(handoffToken, confirmationToken, now)
-        account = submittedState ?? account
-      },
       createId: () => `invocation-${++id}`,
       now: () => now,
     })
@@ -455,26 +452,61 @@ describe('focused route-scoped WebMCP tools', () => {
       'waiting_confirmation',
       now + 2,
     )
-    confirmationRef.current = await recipient.handoffs.createConfirmation(
+
+    // The agent's last possible step: prepare the renewal for human review.
+    // No WebMCP tool exists to go any further than this.
+    await expect(invoke('benefits_prepare_renewal')).resolves.toMatchObject({
+      ok: true,
+      awaitingHumanApproval: true,
+      summary: expect.objectContaining({ planId: 'silver' }),
+    })
+    expect(account.submittedAt).toBeNull()
+    await expect(recipient.handoffs.get(handoff.id)).resolves.toMatchObject({
+      status: 'waiting_confirmation',
+    })
+
+    // Only a human, through the exact same domain command layer, can
+    // attest and submit — this mirrors `attestAndSubmitRenewal` atomically.
+    const attestation = executeCommand(
+      {
+        state: account,
+        source: 'human',
+        now: now + 3,
+        createId: () => 'attestation',
+      },
+      { type: 'recipient_attestation' },
+    )
+    expect(attestation.ok).toBe(true)
+    const confirmation = await recipient.handoffs.createConfirmation(
       handoffToken,
       now + 3,
     )
-    await expect(invoke('benefits_submit_renewal')).resolves.toMatchObject({
-      ok: true,
-    })
+    const humanSubmit = executeCommand(
+      {
+        state: account,
+        source: 'human',
+        now: now + 4,
+        confirmation,
+        createId: () => 'human-submit',
+      },
+      { type: 'submit_renewal', confirmationToken: confirmation.token },
+    )
+    expect(humanSubmit.ok).toBe(true)
+    account = humanSubmit.state
+    await recipient.handoffs.complete(handoffToken, confirmation.token, now + 4)
 
-    expect(account.submittedAt).toBe(now)
+    expect(account.submittedAt).toBe(now + 4)
     await expect(recipient.handoffs.get(handoff.id)).resolves.toMatchObject({
       status: 'completed',
     })
     await expect(recipient.activity.list()).resolves.toContainEqual(
       expect.objectContaining({
         kind: 'command',
-        source: 'webmcp',
+        source: 'human',
         commandType: 'submit_renewal',
         policy: 'confirmation_required',
         outcome: 'applied',
-        timestamp: now,
+        timestamp: now + 4,
       }),
     )
   })

@@ -147,6 +147,22 @@ export function executeCommand(
     }
   }
 
+  if (command.type === 'recipient_attestation') {
+    // This is the one command WebMCP tools are structurally unable to issue:
+    // there is no tool that sends it, and even if one existed, the source
+    // guard below would refuse it. It never mutates account state — it only
+    // produces the semantic event that proves a human personally attested,
+    // immediately before the same click atomically submits the renewal.
+    if (context.source === 'webmcp') {
+      return refused(context, command, 'requires_user_confirmation')
+    }
+    return {
+      ok: true,
+      state: context.state,
+      event: eventFor(context, command, 'applied'),
+    }
+  }
+
   if (
     command.type === 'set_preference' &&
     !isValidPreference(command)

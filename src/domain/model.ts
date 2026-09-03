@@ -77,6 +77,10 @@ export type Command =
   | (PotentiallySensitiveInput & { type: 'review_recipient_details' })
   | (PotentiallySensitiveInput & { type: 'preview_renewal' })
   | (PotentiallySensitiveInput & { type: 'create_confirmation' })
+  // Human-only: a personal, identity-bearing attestation. WebMCP/agents can
+  // never issue this command — see executeCommand's source guard — so it
+  // can only ever appear in the activity log as a genuine human action.
+  | (PotentiallySensitiveInput & { type: 'recipient_attestation' })
   | (PotentiallySensitiveInput & {
       type: 'submit_renewal'
       confirmationToken: string
@@ -258,13 +262,17 @@ export interface RecipientWorkflowRun {
   handoffId: string
   scenario: 'normal' | 'unavailable'
   accountId: string
+  // 'confirmation' is the single AWAITING HUMAN APPROVAL phase: an agent may
+  // read state, adapt safe preferences, and prepare the renewal, but only
+  // one deliberate human action (attest + submit, atomically) moves a run
+  // from 'confirmation' straight to 'complete' — there is no separate
+  // "confirmed, ready to submit" phase to round-trip through.
   phase:
     | 'explain'
     | 'adapted'
     | 'awaiting_helper'
     | 'helper_resolved'
     | 'confirmation'
-    | 'confirmed'
     | 'complete'
   createdAt: number
   updatedAt: number

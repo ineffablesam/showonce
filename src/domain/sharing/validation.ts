@@ -354,6 +354,7 @@ export function validateActivity(value: ActivityEvent): ActivityEvent {
     'review_recipient_details',
     'preview_renewal',
     'create_confirmation',
+    'recipient_attestation',
     'submit_renewal',
     'record_decision',
   ]
@@ -379,7 +380,7 @@ export function validateActivity(value: ActivityEvent): ActivityEvent {
     'benefits_preview_renewal',
     'showonce_request_helper',
     'showonce_get_helper_decision',
-    'benefits_submit_renewal',
+    'benefits_prepare_renewal',
   ]
   if (
     !['command', 'webmcp_invocation'].includes(String(record.kind)) ||

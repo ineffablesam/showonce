@@ -278,11 +278,14 @@ class LocalOnlyHandoffRepository
       throw new Error('Handoff cannot be completed in its current state')
     }
     const next = { ...handoff, status: 'completed' as const, updatedAt: now }
+    // Only a human attestation can ever reach this point now — there is no
+    // WebMCP path to `.complete()` any more — so this atomic submission
+    // activity is always sourced from a human.
     const submitActivity = validateActivity({
       id: `submit-${globalThis.crypto.randomUUID()}`,
       kind: 'command',
       timestamp: now,
-      source: 'webmcp',
+      source: 'human',
       commandType: 'submit_renewal',
       policy: 'confirmation_required',
       outcome: 'applied',

@@ -41,6 +41,8 @@ export function describeCommand(
       return 'Reviewed renewal summary'
     case 'create_confirmation':
       return 'Approved for 120 seconds'
+    case 'recipient_attestation':
+      return 'Personally attested and approved'
     case 'submit_renewal':
       return 'Submitted renewal'
     case 'record_decision':

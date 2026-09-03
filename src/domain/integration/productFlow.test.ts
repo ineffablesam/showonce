@@ -197,7 +197,7 @@ describe('connected ShowOnce product flow', () => {
       handoffId: 'A'.repeat(24),
       scenario: 'normal' as const,
       accountId: account.id,
-      phase: 'confirmed' as const,
+      phase: 'confirmation' as const,
       createdAt: 1,
       updatedAt: 1,
     }
@@ -261,7 +261,7 @@ describe('connected ShowOnce product flow', () => {
       handoffId: 'A'.repeat(24),
       scenario: 'normal' as const,
       accountId: account.id,
-      phase: 'confirmed' as const,
+      phase: 'confirmation' as const,
       createdAt: 1,
       updatedAt: 1,
     }

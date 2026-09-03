@@ -13,7 +13,7 @@ The tests cover semantic command execution, event recording, procedure compilati
 ## Manual critical path
 
 1. Reset the demo and switch to Samuel.
-2. Start a Nexa Benefits ShowOnce.
+2. Start a Northstar Benefits ShowOnce.
 3. Complete the renewal and finish recording.
 4. Inspect carry-over, adaptation, confirmation, and excluded data.
 5. Create and open Mom’s handoff.

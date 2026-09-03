@@ -109,10 +109,10 @@ export const SHOWONCE_TOOLS = [
     scopes: ['recipient'],
   },
   {
-    name: 'benefits_submit_renewal',
-    title: 'Submit renewal',
+    name: 'benefits_prepare_renewal',
+    title: 'Prepare renewal for human approval',
     description:
-      'Submits only after a fresh confirmation performed by the recipient UI.',
+      'Validates a plan is selected and packages the final renewal summary. This is the last step an agent can take — actually submitting requires a personal human attestation that no WebMCP tool can perform.',
     inputSchema: objectSchema(),
     annotations: { readOnlyHint: false },
     scopes: ['recipient'],

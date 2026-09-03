@@ -144,9 +144,13 @@ function HandoffDetail() {
               <span className="eyebrow">Agent tools</span>
               <h2>{recipientTools.length} recipient tools</h2>
               <p>Registered only on the recipient route when WebMCP is available.</p>
-              {recipientTools.map((tool) => (
-                <code key={tool.name}>{tool.name}</code>
-              ))}
+              <div className="tool-chip-list">
+                {recipientTools.map((tool) => (
+                  <code className="tool-chip-list__item" key={tool.name}>
+                    {tool.name}
+                  </code>
+                ))}
+              </div>
             </Card>
             <Card>
               <span className="eyebrow">Plan unavailable preview</span>

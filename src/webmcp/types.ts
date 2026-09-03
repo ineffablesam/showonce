@@ -6,7 +6,6 @@ import type {
   Handoff,
   HelperDecision,
   HelpRequest,
-  Confirmation,
   Procedure,
   ProcedureStep,
 } from '../domain/model'
@@ -26,7 +25,7 @@ export type ShowOnceToolName =
   | 'benefits_preview_renewal'
   | 'showonce_request_helper'
   | 'showonce_get_helper_decision'
-  | 'benefits_submit_renewal'
+  | 'benefits_prepare_renewal'
 
 export interface ShowOnceToolDescriptor
   extends Omit<WebMCP.ModelContextTool, 'execute'> {
@@ -78,8 +77,6 @@ export interface WebMCPRegistrationContext {
   now?: () => number
   createId?: () => string
   getActiveHandoff?: () => PublicHandoff | Handoff | null
-  getConfirmation?: () => Confirmation | undefined
-  completeHandoff?: (confirmationToken: string) => Promise<void>
   requestHelper?: () => Promise<HelpRequest>
   getActiveHelpRequestId?: () => string | undefined
   onToolStart?: (toolName: ShowOnceToolName) => void | Promise<void>

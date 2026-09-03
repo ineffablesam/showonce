@@ -448,6 +448,17 @@ export async function completeRecipientSubmission(
       command,
     }
   }
+  // Reaching the AWAITING HUMAN APPROVAL screen may have happened from
+  // 'running' or, when the comparison flagged a material difference,
+  // 'needs_input' — both are valid predecessors of 'waiting_confirmation'.
+  // Advancing here (idempotently; a no-op if already there) guarantees
+  // `.complete()` below always sees an allowed source status regardless of
+  // which path the recipient took to get here. Best-effort: if this fails
+  // (e.g. a test double with no backing handoff record), fall through and
+  // let `.complete()`'s own error handling decide the outcome.
+  await repositories.handoffs
+    .transitionByPublicToken(options.handoffToken, 'waiting_confirmation', timestamp)
+    .catch(() => undefined)
   try {
     await repositories.handoffs.complete(
       options.handoffToken,
@@ -484,6 +495,57 @@ export async function completeRecipientSubmission(
     run: nextRun,
     command,
   }
+}
+
+/**
+ * The single atomic human action that replaces the old two-turn
+ * "WebMCP asks for confirmation → human confirms → WebMCP submits again"
+ * dance. An agent can read state, adapt safe preferences, and prepare the
+ * renewal right up to this point — but only a human clicking "Confirm &
+ * submit" can call this. It (1) records a HUMAN-only `recipient_attestation`
+ * semantic event, then (2) immediately mints a fresh single-use confirmation
+ * and executes `submit_renewal` through the exact same domain command layer,
+ * so the UI can go straight from AWAITING HUMAN APPROVAL to the success
+ * screen with no further agent turn required.
+ */
+export async function attestAndSubmitRenewal(
+  repositories: ShowOnceRepositories,
+  account: AccountState,
+  run: RecipientWorkflowRun,
+  options: Runtime & { handoffToken: string },
+): ReturnType<typeof completeRecipientSubmission> {
+  const timestamp = (options.now ?? now)()
+  const attestation = executeCommand(
+    {
+      state: account,
+      source: 'human',
+      now: timestamp,
+      createId: options.createId ?? createId,
+    },
+    { type: 'recipient_attestation' },
+  )
+  await repositories.activity
+    .appendForHandoffToken(options.handoffToken, {
+      id: `activity-${attestation.event.id}`,
+      kind: 'command',
+      timestamp,
+      source: 'human',
+      outcome: 'applied',
+      commandType: attestation.event.commandType,
+      policy: attestation.event.policy,
+    })
+    .catch((error: unknown) => {
+      console.warn('Failed to record attestation activity', error)
+    })
+
+  const confirmation = await repositories.handoffs.createConfirmation(
+    options.handoffToken,
+    timestamp,
+  )
+  return completeRecipientSubmission(repositories, account, run, confirmation, {
+    ...options,
+    source: 'human',
+  })
 }
 
 export function submitWithFreshConfirmation(

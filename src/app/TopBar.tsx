@@ -79,7 +79,7 @@ export function TopBar({
         <Icon name="menu" />
       </button>
       <WebMCPStatus state={webmcp} />
-      <Link className="topbar__help" to="/shared">
+      <Link className="topbar__help" to="/guide">
         <Icon name="help" />
         Guide
       </Link>

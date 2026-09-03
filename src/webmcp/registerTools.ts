@@ -203,24 +203,33 @@ async function invoke(
           : null
         break
       }
-      case 'benefits_submit_renewal': {
-        const confirmation = context.getConfirmation?.()
-        if (!confirmation) {
+      case 'benefits_prepare_renewal': {
+        const state = context.getRecipientState()
+        const plan = state.availablePlans.find(
+          ({ id }) => id === state.selectedPlanId,
+        )
+        if (!plan) {
           outcome = 'refused'
-          result = { ok: false, reason: 'requires_user_confirmation' }
+          result = { ok: false, reason: 'plan_required' }
           break
         }
-        const commandResult = context.execute({
-          type: 'submit_renewal',
-          confirmationToken: confirmation.token,
-        })
-        if (commandResult.ok) {
-          if (!context.completeHandoff) {
-            throw new Error('Atomic handoff completion is unavailable')
-          }
-          await context.completeHandoff(confirmation.token)
+        // A read-through checkpoint, not a mutation: this is as far as any
+        // agent can go. Only a human clicking "Confirm & submit" in the
+        // recipient UI can move the renewal past this point.
+        const commandResult = context.execute({ type: 'preview_renewal' })
+        result = {
+          ok: commandResult.ok,
+          reason: commandResult.ok ? undefined : commandResult.reason,
+          summary: {
+            planId: plan.id,
+            planName: plan.name,
+            monthlyPrice: plan.monthlyPrice,
+            renewalFrequency: state.preferences.renewalFrequency ?? 'annual',
+            paperless: state.preferences.paperless,
+            dependentCount: state.dependents.length,
+          },
+          awaitingHumanApproval: true,
         }
-        result = commandResult
         outcome = commandResult.ok ? 'applied' : 'refused'
         break
       }
@@ -236,12 +245,7 @@ async function invoke(
     throw error
   }
 
-  if (
-    descriptor.name !== 'benefits_submit_renewal' ||
-    outcome !== 'applied'
-  ) {
-    await audit(context, descriptor.name, outcome)
-  }
+  await audit(context, descriptor.name, outcome)
   context.onToolResult?.(descriptor.name, result)
   return result
 }

@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Settings,
   Share2,
+  ShieldCheck,
   Trash2,
   Users,
   X,
@@ -41,6 +42,7 @@ export type IconName =
   | 'home'
   | 'lock'
   | 'menu'
+  | 'northstar'
   | 'plus'
   | 'record'
   | 'refresh'
@@ -69,6 +71,7 @@ const lucideIcons: Record<Exclude<IconName, 'spark'>, LucideIcon> = {
   home: Home,
   lock: Lock,
   menu: Menu,
+  northstar: ShieldCheck,
   plus: Plus,
   record: Disc,
   refresh: RefreshCw,

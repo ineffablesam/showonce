@@ -1,1 +1,0 @@
-import{x as e}from"./index-D665_TzY.js";var t=e;export{t as component};

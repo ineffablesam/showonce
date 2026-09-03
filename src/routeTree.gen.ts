@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as HandoffsRouteImport } from './routes/handoffs'
 import { Route as NeedsInputRouteImport } from './routes/needs-input'
 import { Route as RecordingsRouteImport } from './routes/recordings'
@@ -46,6 +47,11 @@ const AppRoute = AppRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HandoffsRoute = HandoffsRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/app': typeof AppRoute
   '/dashboard': typeof DashboardRoute
+  '/guide': typeof GuideRoute
   '/handoffs': typeof HandoffsRouteWithChildren
   '/needs-input': typeof NeedsInputRoute
   '/recordings': typeof RecordingsRouteWithChildren
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/app': typeof AppRoute
   '/dashboard': typeof DashboardRoute
+  '/guide': typeof GuideRoute
   '/needs-input': typeof NeedsInputRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/app': typeof AppRoute
   '/dashboard': typeof DashboardRoute
+  '/guide': typeof GuideRoute
   '/handoffs': typeof HandoffsRouteWithChildren
   '/needs-input': typeof NeedsInputRoute
   '/recordings': typeof RecordingsRouteWithChildren
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/app'
     | '/dashboard'
+    | '/guide'
     | '/handoffs'
     | '/needs-input'
     | '/recordings'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/app'
     | '/dashboard'
+    | '/guide'
     | '/needs-input'
     | '/settings'
     | '/shared'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/app'
     | '/dashboard'
+    | '/guide'
     | '/handoffs'
     | '/needs-input'
     | '/recordings'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   AppRoute: typeof AppRoute
   DashboardRoute: typeof DashboardRoute
+  GuideRoute: typeof GuideRoute
   HandoffsRoute: typeof HandoffsRouteWithChildren
   NeedsInputRoute: typeof NeedsInputRoute
   RecordingsRoute: typeof RecordingsRouteWithChildren
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/handoffs': {
@@ -420,6 +440,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   AppRoute: AppRoute,
   DashboardRoute: DashboardRoute,
+  GuideRoute: GuideRoute,
   HandoffsRoute: HandoffsRouteWithChildren,
   NeedsInputRoute: NeedsInputRoute,
   RecordingsRoute: RecordingsRouteWithChildren,
