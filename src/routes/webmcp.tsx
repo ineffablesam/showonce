@@ -71,7 +71,7 @@ function Inspector() {
       </section>
       <section className="inspector-log">
         <div className="section-heading"><h2>Actual invocation log</h2><span>No synthetic calls</span></div>
-        {invocations.length ? <Card><ActivityTable data={invocations} /></Card> : <Card><EmptyState detail="Real browser tool calls will be audited here." title="No WebMCP invocations" /></Card>}
+        {invocations.length ? <Card><ActivityTable data={invocations} /></Card> : <Card><EmptyState detail="Real browser tool calls will be audited here." icon="bolt" iconTone="blue" title="No WebMCP invocations" /></Card>}
       </section>
     </div>
   )

@@ -3,6 +3,7 @@ import {
   Activity,
   Archive,
   ArrowRight,
+  Bell,
   Check,
   ChevronLeft,
   Clipboard,
@@ -14,6 +15,8 @@ import {
   LayoutGrid,
   Lock,
   Menu,
+  PanelLeft,
+  PanelLeftClose,
   Plus,
   RefreshCw,
   Settings,
@@ -31,6 +34,7 @@ export type IconName =
   | 'activity'
   | 'archive'
   | 'arrow'
+  | 'bell'
   | 'bolt'
   | 'check'
   | 'chevronLeft'
@@ -43,6 +47,8 @@ export type IconName =
   | 'lock'
   | 'menu'
   | 'northstar'
+  | 'panelClose'
+  | 'panelOpen'
   | 'plus'
   | 'record'
   | 'refresh'
@@ -60,6 +66,7 @@ const lucideIcons: Record<Exclude<IconName, 'spark'>, LucideIcon> = {
   activity: Activity,
   archive: Archive,
   arrow: ArrowRight,
+  bell: Bell,
   bolt: Zap,
   check: Check,
   chevronLeft: ChevronLeft,
@@ -72,6 +79,8 @@ const lucideIcons: Record<Exclude<IconName, 'spark'>, LucideIcon> = {
   lock: Lock,
   menu: Menu,
   northstar: ShieldCheck,
+  panelClose: PanelLeftClose,
+  panelOpen: PanelLeft,
   plus: Plus,
   record: Disc,
   refresh: RefreshCw,

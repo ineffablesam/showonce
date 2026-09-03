@@ -227,6 +227,7 @@ export function executeCommand(
       !DECISION_OUTCOMES.has(runtimeOutcome) ||
       (command.outcome === 'recommend_plan' &&
         command.recommendedPlanId !== 'silver' &&
+        command.recommendedPlanId !== 'gold' &&
         command.recommendedPlanId !== 'platinum')
     ) {
       return refused(context, command, 'invalid_command')

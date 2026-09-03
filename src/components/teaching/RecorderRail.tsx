@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { BrandMark } from '../ui/BrandMark'
 import { Icon } from '../ui/Icon'
 import { describeCommand } from '../../domain/presentation/describeCommand'
 import type { Plan, SemanticEvent } from '../../domain/model'
@@ -48,7 +49,7 @@ export function RecorderRail({
     <aside aria-label="ShowOnce recorder" className="recorder-rail">
       <div className="recorder-rail__brand">
         <span className="brand__mark">
-          <Icon name="spark" />
+          <BrandMark height={14} width={18} />
         </span>
         ShowOnce
       </div>

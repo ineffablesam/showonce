@@ -13,7 +13,7 @@ function Activity() {
     <AppShell>
       <div className="library-page">
         <div className="page-heading"><div><span className="eyebrow">Semantic audit</span><h1>Activity</h1><p>Human commands and real WebMCP invocations, clearly sourced.</p></div></div>
-        {activity.isPending ? <div aria-label="Loading activity" className="page-loading"><span /></div> : activity.isError ? <Card className="error-state">Unable to load activity.</Card> : activity.data.length ? <Card><ActivityTable data={activity.data} /></Card> : <Card><EmptyState detail="Actions appear here as the connected flow runs." title="No activity yet" /></Card>}
+        {activity.isPending ? <div aria-label="Loading activity" className="page-loading"><span /></div> : activity.isError ? <Card className="error-state">Unable to load activity.</Card> : activity.data.length ? <Card><ActivityTable data={activity.data} /></Card> : <Card><EmptyState detail="Actions appear here as the connected flow runs." icon="activity" iconTone="green" title="No activity yet" /></Card>}
       </div>
     </AppShell>
   )

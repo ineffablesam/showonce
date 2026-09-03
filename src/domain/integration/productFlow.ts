@@ -52,7 +52,7 @@ export function createRecipientAccount(
   scenario: 'normal' | 'unavailable',
 ): AccountState {
   return {
-    id: scenario === 'normal' ? 'mom-normal' : 'mom-unavailable',
+    id: scenario === 'normal' ? 'recipient-normal' : 'recipient-unavailable',
     availablePlans:
       scenario === 'normal'
         ? [
@@ -69,7 +69,7 @@ export function createRecipientAccount(
       communication: 'mail',
       renewalFrequency: 'monthly',
     },
-    address: 'Mom recipient address',
+    address: '14 Cedar Lane',
     dependents: ['Avery', 'Casey'],
     submittedAt: null,
   }
@@ -241,7 +241,12 @@ export async function createHelpRequest(
   repositories: ShowOnceRepositories,
   handoffId: string,
   runtime: Runtime = {},
+  detail: HelpRequest['detail'] = 'plan_unavailable',
 ): Promise<HelpRequest> {
+  const options: HelpRequest['options'] =
+    detail === 'material_price_change'
+      ? ['gold', 'silver', 'let_recipient_decide']
+      : ['silver', 'platinum', 'let_recipient_decide']
   const request: HelpRequest = {
     id: (runtime.createId ?? createId)(),
     publicToken: (runtime.createToken ?? generatePublicToken)(),
@@ -250,8 +255,8 @@ export async function createHelpRequest(
     updatedAt: (runtime.now ?? now)(),
     expiresAt: (runtime.now ?? now)() + 7 * 24 * 60 * 60 * 1000,
     status: 'open',
-    detail: 'plan_unavailable',
-    options: ['silver', 'platinum', 'let_recipient_decide'],
+    detail,
+    options,
   }
   await repositories.helpRequests.createForHandoffToken(handoffId, request)
   return request

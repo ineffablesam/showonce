@@ -16,7 +16,7 @@ import { SHOWONCE_TOOLS } from './definitions/tools'
 import { registerWebMCPTools } from './registerTools'
 
 const state = {
-  id: 'mom-normal',
+  id: 'recipient-normal',
   availablePlans: [{ id: 'gold', name: 'Gold', monthlyPrice: 142 }],
   selectedPlanId: 'silver',
   preferences: {
@@ -55,7 +55,7 @@ function setup(confirmation?: Confirmation) {
   const handoff = {
     id: 'handoff',
     procedureId: 'procedure',
-    title: 'For Mom',
+    title: 'For Alex',
     createdAt: 1,
     policy: {
       allowSafePreferences: true,
@@ -318,7 +318,7 @@ describe('focused route-scoped WebMCP tools', () => {
       id: 'handoff-tool-flow',
       publicToken: handoffToken,
       procedureId: procedure.id,
-      title: 'For Mom',
+      title: 'For Alex',
       createdAt: baseTime,
       updatedAt: baseTime,
       expiresAt: baseTime + 600_000,

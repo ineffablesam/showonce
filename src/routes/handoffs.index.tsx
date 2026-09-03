@@ -44,7 +44,7 @@ function Handoffs() {
             <HandoffsTable data={handoffs.data} onDelete={setPendingDelete} />
           </Card>
         ) : (
-          <Card><EmptyState detail="Finish a recording, then create its recipient link." title="No handoffs yet" /></Card>
+          <Card><EmptyState detail="Finish a recording, then create its recipient link." icon="share" iconTone="green" title="No handoffs yet" /></Card>
         )}
       </div>
       <ConfirmDialog

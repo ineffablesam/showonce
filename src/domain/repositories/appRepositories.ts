@@ -37,7 +37,10 @@ import {
   saveHelpRequestServer,
   transitionHandoffServer,
 } from '../../server/sharedServerFns'
-import { createLocalDemoRepositories } from './browserRepositories'
+import {
+  createBrowserRepositories,
+  createLocalDemoRepositories,
+} from './browserRepositories'
 import { DEMO_SEED } from './seed'
 import { createLocalOnlySharedRepositories } from './sharedRepositories'
 import type { SharedRepositories } from './sharedRepositories'
@@ -113,12 +116,27 @@ const supabase: SharedRepositories = {
 let selected: Promise<SharedRepositories> | undefined =
   testShared ? Promise.resolve(testShared) : undefined
 
+function createBrowserSharedRepositories(): SharedRepositories {
+  const browser = createBrowserRepositories({ seed: DEMO_SEED })
+  return {
+    procedures: browser.procedures,
+    handoffs: browser.handoffs,
+    helpRequests: browser.helpRequests,
+    decisions: browser.decisions,
+    activity: browser.activity,
+    mode: 'local-only',
+  }
+}
+
 async function shared(): Promise<SharedRepositories> {
   if (selected) return selected
   const resolveShared = getSharedPersistenceMode().then(async (mode) => {
     if (mode === 'supabase') {
       await ensureOwnerWorkspaceServer()
       return supabase
+    }
+    if (import.meta.env.DEV) {
+      return createBrowserSharedRepositories()
     }
     throw new Error(
       'Shared persistence is unavailable. Configure the server environment.',

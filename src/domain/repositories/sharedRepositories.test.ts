@@ -81,7 +81,7 @@ describe('shared repository boundary', () => {
       id: 'internal-handoff-id',
       publicToken: token,
       procedureId: procedure.id,
-      title: 'For Mom',
+      title: 'For Alex',
       createdAt: 1,
       updatedAt: 1,
       expiresAt: 1 + 7 * 24 * 60 * 60 * 1000,
@@ -94,7 +94,7 @@ describe('shared repository boundary', () => {
 
     expect(loaded).toMatchObject({
       publicToken: token,
-      title: 'For Mom',
+      title: 'For Alex',
       status: 'created',
     })
     expect((await sender.handoffs.get(handoff.id))?.status).toBe('created')
@@ -115,7 +115,7 @@ describe('shared repository boundary', () => {
       id: 'internal-handoff-id',
       publicToken: parentToken,
       procedureId: procedure.id,
-      title: 'For Mom',
+      title: 'For Alex',
       createdAt: 1,
       updatedAt: 1,
       expiresAt: 1 + 7 * 24 * 60 * 60 * 1000,
@@ -188,7 +188,7 @@ describe('shared repository boundary', () => {
       id: 'secure-handoff',
       publicToken: token,
       procedureId: procedure.id,
-      title: 'For Mom',
+      title: 'For Alex',
       createdAt: startedAt,
       updatedAt: startedAt,
       expiresAt: startedAt + 1_000_000,

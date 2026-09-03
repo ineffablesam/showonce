@@ -46,16 +46,21 @@ function differenceTone(kind: AdaptationResult['differences'][number]['kind']): 
 
 export function AdaptationPanel({
   result,
-  scenario,
   onChoose,
   onAsk,
   recipient,
+  recipientName,
+  helperError,
+  askingHelper,
 }: {
   result: AdaptationResult
   scenario: 'normal' | 'unavailable'
   onChoose: () => void
   onAsk: () => void
   recipient: AccountState
+  recipientName: string
+  helperError?: string
+  askingHelper?: boolean
 }) {
   const unavailable = result.differences.some(
     (difference) => difference.kind === 'plan_unavailable',
@@ -157,29 +162,37 @@ export function AdaptationPanel({
       </div>
       <Card className="decision-card">
         <span className="eyebrow">
-          {unavailable ? 'Plan unavailable' : 'Material price difference'}
+          {unavailable ? 'Plan unavailable' : 'Regional pricing difference'}
         </span>
         <h3>
           {unavailable
             ? `${planName} is not offered for this account.`
-            : `${planName} costs $${recipientPlan?.monthlyPrice ?? '—'}/month here.`}
+            : `${planName} costs $${recipientPlan?.monthlyPrice ?? '—'}/month on ${recipientName}'s account.`}
         </h3>
         <p>
           {unavailable
             ? 'ShowOnce will not choose a substitute automatically.'
-            : `${priceDifference?.detail ?? 'The demonstrated plan differs here.'} This needs an explicit decision.`}
+            : `${priceDifference?.detail ?? 'The demonstrated plan differs by region.'} Ask the sender before an agent continues.`}
         </p>
+        {helperError ? (
+          <p className="decision-card__error" role="alert">
+            {helperError}
+          </p>
+        ) : null}
         <div className="decision-card__actions">
           <button className="button button--primary" onClick={onChoose} type="button">
             {unavailable
               ? "I'll choose"
               : `Choose ${planName}${recipientPlan ? ` at $${recipientPlan.monthlyPrice}` : ''}`}
           </button>
-          {scenario === 'unavailable' ? (
-            <button className="button button--ghost" onClick={onAsk} type="button">
-              Ask Samuel
-            </button>
-          ) : null}
+          <button
+            className="button button--ghost"
+            disabled={askingHelper}
+            onClick={onAsk}
+            type="button"
+          >
+            {askingHelper ? 'Sending request…' : 'Ask the sender'}
+          </button>
         </div>
       </Card>
     </div>

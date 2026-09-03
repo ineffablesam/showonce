@@ -14,7 +14,7 @@ export interface Plan {
   monthlyPrice: number
 }
 
-export type HelperPlanId = 'silver' | 'platinum'
+export type HelperPlanId = 'silver' | 'gold' | 'platinum'
 export type HelperChoice = HelperPlanId | 'let_recipient_decide'
 
 export interface Preferences {
@@ -253,7 +253,7 @@ export interface HelpRequest {
   updatedAt?: number
   expiresAt?: number
   status: 'open' | 'resolved'
-  detail: 'plan_unavailable'
+  detail: 'plan_unavailable' | 'material_price_change'
   options?: HelperChoice[]
 }
 

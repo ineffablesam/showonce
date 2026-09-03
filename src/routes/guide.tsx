@@ -107,18 +107,18 @@ function Guide() {
         </section>
 
         <section>
-          <div className="section-heading">
-            <h2>WebMCP building block</h2>
-            <span>Real tools, not simulation</span>
+          <div className="guide-prose-grid">
+            <Card>
+              <span className="eyebrow">WebMCP building block</span>
+              <h2>Real tools, not simulation</h2>
+              <p>
+                Each domain command in ShowOnce is exposed to agents through{' '}
+                <code>document.modelContext.registerTool(...)</code>. That registration is
+                the core building block: it makes every captured action a real, invocable
+                tool that updates the live app—the same path the human UI already uses.
+              </p>
+            </Card>
           </div>
-          <Card>
-            <p>
-              Each domain command in ShowOnce is exposed to agents through{' '}
-              <code>document.modelContext.registerTool(...)</code>. That registration is
-              the core building block: it makes every captured action a real, invocable
-              tool that updates the live app—the same path the human UI already uses.
-            </p>
-          </Card>
         </section>
       </div>
     </AppShell>

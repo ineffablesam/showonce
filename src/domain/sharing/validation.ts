@@ -249,6 +249,39 @@ export function validateHandoff(value: Handoff): Handoff {
   return structuredClone(value)
 }
 
+const helperRequestOptionsByDetail = {
+  plan_unavailable: ['silver', 'platinum', 'let_recipient_decide'],
+  material_price_change: ['gold', 'silver', 'let_recipient_decide'],
+} as const
+
+function assertHelpRequestDetailAndOptions(
+  detail: unknown,
+  options: unknown,
+  label: string,
+): void {
+  if (
+    detail !== 'plan_unavailable' &&
+    detail !== 'material_price_change'
+  ) {
+    throw new Error(`${label} detail is invalid`)
+  }
+  if (
+    !Array.isArray(options) ||
+    options.length === 0 ||
+    options.length > 3
+  ) {
+    throw new Error(`${label} DTO is invalid`)
+  }
+  const allowed = helperRequestOptionsByDetail[detail]
+  if (
+    !options.every((option) =>
+      allowed.includes(String(option) as (typeof allowed)[number]),
+    )
+  ) {
+    throw new Error(`${label} option is invalid`)
+  }
+}
+
 export function validateHelpRequest(value: HelpRequest): HelpRequest {
   const record = assertRecord(value, 'Helper request')
   assertExactKeys(
@@ -272,26 +305,15 @@ export function validateHelpRequest(value: HelpRequest): HelpRequest {
   }
   assertPublicToken(record.publicToken)
   assertFiniteNumber(record.createdAt, 'Helper request createdAt')
+  assertFiniteNumber(record.updatedAt, 'Helper request updatedAt')
   assertFiniteNumber(record.expiresAt, 'Helper request expiresAt')
   if (record.expiresAt <= record.createdAt) {
     throw new Error('Helper request expiry must follow creation')
   }
-  if (
-    (record.status !== 'open' && record.status !== 'resolved') ||
-    record.detail !== 'plan_unavailable' ||
-    !Array.isArray(record.options) ||
-    record.options.length === 0 ||
-    record.options.length > 3
-  ) {
+  if (record.status !== 'open' && record.status !== 'resolved') {
     throw new Error('Helper request DTO is invalid')
   }
-  if (
-    !record.options.every((option) =>
-      ['silver', 'platinum', 'let_recipient_decide'].includes(String(option)),
-    )
-  ) {
-    throw new Error('Helper request option is invalid')
-  }
+  assertHelpRequestDetailAndOptions(record.detail, record.options, 'Helper request')
   assertSafeJson(record, 'Helper request')
   return structuredClone(value)
 }
@@ -314,6 +336,7 @@ export function validateDecision(value: HelperDecision): HelperDecision {
   if (
     record.outcome === 'recommend_plan' &&
     record.recommendedPlanId !== 'silver' &&
+    record.recommendedPlanId !== 'gold' &&
     record.recommendedPlanId !== 'platinum'
   ) {
     throw new Error('Helper decision recommendation is invalid')
@@ -499,22 +522,14 @@ export function validatePublicHelpRequest(
   }
   assertPublicToken(record.publicToken)
   assertFiniteNumber(record.expiresAt, 'Helper request expiresAt')
-  if (
-    (record.status !== 'open' && record.status !== 'resolved') ||
-    record.detail !== 'plan_unavailable' ||
-    !Array.isArray(record.options) ||
-    record.options.length === 0 ||
-    record.options.length > 3
-  ) {
+  if (record.status !== 'open' && record.status !== 'resolved') {
     throw new Error('Public helper request DTO is invalid')
   }
-  if (
-    !record.options.every((option) =>
-      ['silver', 'platinum', 'let_recipient_decide'].includes(String(option)),
-    )
-  ) {
-    throw new Error('Public helper request option is invalid')
-  }
+  assertHelpRequestDetailAndOptions(
+    record.detail,
+    record.options,
+    'Public helper request',
+  )
   assertSafeJson(record, 'Public helper request')
   return structuredClone(record) as unknown as PublicHelpRequest
 }

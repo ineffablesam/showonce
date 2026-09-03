@@ -10,6 +10,7 @@ import {
   createDemoAccount,
   createRecipientAccount,
 } from '../domain/integration/productFlow'
+import { handoffRecipientName, possessive } from '../lib/handoffRecipient'
 import { repositories } from '../domain/repositories/appRepositories'
 import { SHOWONCE_TOOLS } from '../webmcp/definitions/tools'
 
@@ -39,7 +40,7 @@ function HandoffDetail() {
   const recipientTools = SHOWONCE_TOOLS.filter((tool) =>
     tool.scopes.includes('recipient'),
   )
-  const recipientName = handoff.data?.recipient ?? 'the recipient'
+  const recipientName = handoffRecipientName(handoff.data?.recipient)
   const shareUrl =
     typeof window === 'undefined' ? sharePath : `${window.location.origin}${sharePath}`
 
@@ -60,6 +61,7 @@ function HandoffDetail() {
         <Card>
           <EmptyState
             detail="The recipient link may have been removed."
+            icon="share"
             title={handoff.isPending ? 'Loading handoff' : 'Handoff not found'}
           />
         </Card>
@@ -80,8 +82,9 @@ function HandoffDetail() {
               <small>Recipient link</small>
               <code>{sharePath}</code>
               <p className="share-card__hint">
-                Paste this into a WebMCP-capable browser (e.g. ChatGPT) and say
-                “Do what Samuel showed me.”
+                {recipientName
+                  ? `Send this to ${recipientName}. They open it directly — no workspace login. Paste into a WebMCP-capable browser and say “Complete this shared task for me.”`
+                  : 'Add a recipient name before sharing this link.'}
               </p>
             </div>
             <button
@@ -107,7 +110,11 @@ function HandoffDetail() {
             </Card>
             <Card>
               <span className="eyebrow">Recipient adaptation</span>
-              <h2>{recipientName}’s account stays authoritative</h2>
+              <h2>
+                {recipientName
+                  ? `${possessive(recipientName)} account stays authoritative`
+                  : 'Recipient account stays authoritative'}
+              </h2>
               <p>
                 {adaptation?.safeActions.length ?? 0} safe actions can adapt;{' '}
                 {adaptation?.differences.length ?? 0} differences remain visible.
@@ -155,7 +162,7 @@ function HandoffDetail() {
             <Card>
               <span className="eyebrow">Plan unavailable preview</span>
               <h2>No automatic substitute</h2>
-              <p>{recipientName} chooses or requests a minimum-information decision.</p>
+              <p>{recipientName ? `${recipientName} chooses` : 'The recipient chooses'} or requests a minimum-information decision.</p>
             </Card>
           </div>
         </div>

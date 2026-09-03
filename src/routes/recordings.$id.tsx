@@ -97,6 +97,7 @@ function RecordingDetail() {
         <Card>
           <EmptyState
             detail="Finish a connected recording to compile its reusable procedure."
+            icon="file"
             title="Procedure not found"
           />
         </Card>
@@ -209,6 +210,8 @@ function RecordingDetail() {
                     ? 'Recipient runs will appear after a shared handoff opens.'
                     : 'Human and WebMCP activity is available in the audit trail.'
                 }
+                icon={tab === 'Runs' ? 'share' : 'activity'}
+                iconTone={tab === 'Runs' ? 'green' : 'blue'}
                 title={`No ${tab.toLowerCase()} yet`}
               />
             </Card>

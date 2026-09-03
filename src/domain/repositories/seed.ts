@@ -58,7 +58,7 @@ export const DEMO_SEED: RepositorySeed = {
       updatedAt: 1_788_384_060_000,
       status: 'created',
       procedure: SEEDED_PROCEDURE,
-      recipient: 'Mom',
+      recipient: '',
     },
   ],
   activity: [
@@ -90,7 +90,7 @@ export const DEMO_SEED: RepositorySeed = {
       submittedAt: null,
     },
     {
-      id: 'mom-normal',
+      id: 'recipient-normal',
       availablePlans: [
         { id: 'silver', name: 'Silver', monthlyPrice: 96 },
         { id: 'gold', name: 'Gold', monthlyPrice: 142 },
@@ -101,12 +101,12 @@ export const DEMO_SEED: RepositorySeed = {
         communication: 'mail',
         renewalFrequency: 'monthly',
       },
-      address: 'Mom recipient address',
+      address: '14 Cedar Lane',
       dependents: ['Avery', 'Casey'],
       submittedAt: null,
     },
     {
-      id: 'mom-unavailable',
+      id: 'recipient-unavailable',
       availablePlans: [
         { id: 'silver', name: 'Silver', monthlyPrice: 96 },
         { id: 'platinum', name: 'Platinum', monthlyPrice: 180 },
@@ -117,7 +117,7 @@ export const DEMO_SEED: RepositorySeed = {
         communication: 'mail',
         renewalFrequency: 'monthly',
       },
-      address: 'Mom recipient address',
+      address: '14 Cedar Lane',
       dependents: ['Avery', 'Casey'],
       submittedAt: null,
     },

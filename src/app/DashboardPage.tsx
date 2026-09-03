@@ -3,6 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { Card, EmptyState } from '../components/ui/Card'
 import { Icon } from '../components/ui/Icon'
 import { useWorkspaceOverview } from '../lib/queries'
+import { useWorkspaceSession } from '../hooks/useWorkspaceSession'
+import { formatUsernameLabel } from '../lib/workspaceUsername'
 import { useAppWebMCP } from './AppShell'
 import { getWebMCPPresentation } from './TopBar'
 
@@ -15,8 +17,10 @@ function formatDate(timestamp: number) {
 
 export function DashboardPage() {
   const overview = useWorkspaceOverview()
+  const session = useWorkspaceSession()
   const webmcp = useAppWebMCP()
   const webmcpPresentation = getWebMCPPresentation(webmcp)
+  const usernameLabel = formatUsernameLabel(session.data?.username ?? 'there')
 
   if (overview.isPending) {
     return (
@@ -58,10 +62,57 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
+      <section
+        aria-labelledby="webmcp-title"
+        className="relative isolate mb-8 w-full overflow-hidden rounded-xl border border-white/20 bg-[url('/background.png')] bg-cover bg-[center_88%] text-white shadow-[0_2px_8px_rgb(35_36_32/3%)]"
+      >
+        <div className="absolute inset-0 bg-linear-to-b from-black/45 via-black/15 to-black/55" />
+        <div className="relative p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-base font-medium tracking-tight" id="webmcp-title">
+              WebMCP
+            </h2>
+            <Link
+              className="text-[9px] font-bold text-white/75 transition-colors hover:text-white"
+              to="/webmcp"
+            >
+              Inspector
+            </Link>
+          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <span className="grid size-10.5 shrink-0 place-items-center rounded-[11px] bg-white/15 text-white backdrop-blur-sm">
+                <Icon name="bolt" />
+              </span>
+              <div className="min-w-0">
+                <strong className="block text-[11px] font-semibold">
+                  WebMCP status: {webmcpPresentation.shortLabel}
+                </strong>
+                <p className="mt-1.5 max-w-2xl text-[9px] leading-relaxed text-white/75">
+                  {webmcpPresentation.detail}
+                </p>
+              </div>
+            </div>
+            <span
+              className={`inline-flex shrink-0 items-center self-start rounded-full px-2.5 py-1 text-[8px] font-extrabold sm:self-center ${
+                webmcp.status === 'available'
+                  ? 'bg-[#e3f2e7] text-(--green)'
+                  : 'bg-white/15 text-white/85'
+              }`}
+            >
+              {webmcpPresentation.shortLabel}
+            </span>
+          </div>
+        </div>
+      </section>
+
       <div className="page-heading">
         <div>
           <span className="eyebrow">{today}</span>
-          <h1>Good evening, Alex.</h1>
+          <h1>
+            <span className="page-heading__greeting-lead">Good evening,</span>{' '}
+            <span className="page-heading__greeting-name">{usernameLabel}.</span>
+          </h1>
           <p>Pick up where you left off or capture something worth repeating.</p>
         </div>
         <div className="page-heading__signal">
@@ -148,6 +199,8 @@ export function DashboardPage() {
             ) : (
               <EmptyState
                 detail="Record a workflow to make it safely repeatable."
+                icon="record"
+                iconTone="ink"
                 title="Nothing in progress"
               />
             )}
@@ -184,57 +237,41 @@ export function DashboardPage() {
                 </div>
               </>
             ) : (
-              <EmptyState detail="Material differences will pause here." title="Nothing needs input" />
-            )}
-          </Card>
-        </section>
-      </div>
-
-      <div className="dashboard-grid dashboard-grid--bottom">
-        <section aria-labelledby="activity-title">
-          <div className="section-heading">
-            <h2 id="activity-title">Recent activity</h2>
-            <Link to="/activity">Open audit trail</Link>
-          </div>
-          <Card className="activity-card">
-            {activity.length ? (
-              activity.slice(0, 3).map((event) => (
-                <div className="activity-row" key={event.id}>
-                  <span className="activity-row__dot" />
-                  <strong>{event.toolName ?? event.kind}</strong>
-                  <small>{event.outcome ?? event.source}</small>
-                </div>
-              ))
-            ) : (
               <EmptyState
-                detail="Human actions and real WebMCP invocations will appear here."
-                title="No activity yet"
+                detail="Material differences will pause here."
+                icon="help"
+                iconTone="amber"
+                title="Nothing needs input"
               />
             )}
           </Card>
         </section>
-
-        <section aria-labelledby="webmcp-title">
-          <div className="section-heading">
-            <h2 id="webmcp-title">WebMCP</h2>
-            <Link to="/webmcp">Inspector</Link>
-          </div>
-          <Card className="webmcp-card">
-            <span className="webmcp-card__glyph">
-              <Icon name="bolt" />
-            </span>
-            <div>
-              <strong>WebMCP status: {webmcpPresentation.shortLabel}</strong>
-              <p>{webmcpPresentation.detail}</p>
-            </div>
-            <span
-              className={`pill ${webmcp.status === 'available' ? 'pill--ready' : ''}`}
-            >
-              {webmcpPresentation.shortLabel}
-            </span>
-          </Card>
-        </section>
       </div>
+
+      <section aria-labelledby="activity-title" className="mt-6">
+        <div className="section-heading">
+          <h2 id="activity-title">Recent activity</h2>
+          <Link to="/activity">Open audit trail</Link>
+        </div>
+        <Card className="activity-card">
+          {activity.length ? (
+            activity.slice(0, 3).map((event) => (
+              <div className="activity-row" key={event.id}>
+                <span className="activity-row__dot" />
+                <strong>{event.toolName ?? event.kind}</strong>
+                <small>{event.outcome ?? event.source}</small>
+              </div>
+            ))
+          ) : (
+            <EmptyState
+              detail="Human actions and real WebMCP invocations will appear here."
+              icon="activity"
+              iconTone="green"
+              title="No activity yet"
+            />
+          )}
+        </Card>
+      </section>
     </div>
   )
 }

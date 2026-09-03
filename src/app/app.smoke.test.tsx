@@ -3,7 +3,7 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getRouter } from '../router'
 import { repositories } from '../domain/repositories/appRepositories'
@@ -17,6 +17,17 @@ HTMLDialogElement.prototype.close = function close() {
   this.open = false
   this.dispatchEvent(new Event('close'))
 }
+
+beforeEach(() => {
+  Object.defineProperty(window, 'Notification', {
+    configurable: true,
+    writable: true,
+    value: {
+      permission: 'granted',
+      requestPermission: vi.fn(async () => 'granted'),
+    },
+  })
+})
 
 afterEach(() => {
   cleanup()
@@ -36,10 +47,53 @@ async function renderRoute(path: string) {
   return router
 }
 
+async function openWorkspace(
+  user: ReturnType<typeof userEvent.setup>,
+  username = 'demo',
+) {
+  await user.click(screen.getByRole('button', { name: /open workspace/i }))
+  await user.type(screen.getByLabelText(/^username$/i), username)
+  await user.click(
+    screen.getByRole('button', {
+      name: new RegExp(`open ${username}`, 'i'),
+    }),
+  )
+  await waitFor(() =>
+    expect(screen.getByRole('navigation', { name: /workspace/i })).toBeTruthy(),
+  )
+}
+
+async function renderWorkspace(path = '/app') {
+  const user = userEvent.setup()
+  const router = await renderRoute('/')
+  await openWorkspace(user)
+  if (path !== '/app') {
+    await act(async () => {
+      await router.navigate({ to: path })
+    })
+    await waitFor(() => expect(router.state.status).toBe('idle'))
+  }
+  return { router, user }
+}
+
+async function selectNorthstarTargetApp(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(screen.getByRole('button', { name: /select the app/i }))
+  await user.click(
+    screen.getByRole('option', { name: /northstar benefits demo/i }),
+  )
+}
+
 describe('ShowOnce product routes', () => {
   it('redirects the dashboard alias to the workspace', async () => {
-    const router = await renderRoute('/dashboard')
-    expect(router.state.location.pathname).toBe('/app')
+    const user = userEvent.setup()
+    const router = await renderRoute('/')
+    await openWorkspace(user)
+    await act(async () => {
+      await router.navigate({ to: '/dashboard' })
+    })
+    await waitFor(() => expect(router.state.location.pathname).toBe('/app'))
   })
 
   it('enters the Northstar Benefits demo from its stable route', async () => {
@@ -52,21 +106,14 @@ describe('ShowOnce product routes', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: /show it once\. hand off the outcome\./i,
+        name: /walk through it once\. agents complete it live\./i,
       }),
     ).toBeTruthy()
-    expect(
-      screen.getByRole('link', { name: /open workspace/i }).getAttribute('href'),
-    ).toBe('/app')
-    expect(
-      screen
-        .getByRole('link', { name: /view shared library/i })
-        .getAttribute('href'),
-    ).toBe('/shared')
+    expect(screen.getByRole('button', { name: /open workspace/i })).toBeTruthy()
   })
 
   it('renders dashboard navigation, seeded work, and honest WebMCP status', async () => {
-    await renderRoute('/app')
+    await renderWorkspace('/app')
 
     expect(screen.getByRole('navigation', { name: /workspace/i })).toBeTruthy()
     expect(
@@ -81,8 +128,7 @@ describe('ShowOnce product routes', () => {
   })
 
   it('creates a real recording and enters the connected benefits app', async () => {
-    const user = userEvent.setup()
-    const router = await renderRoute('/app')
+    const { user, router } = await renderWorkspace('/app')
 
     await user.click(screen.getByRole('button', { name: /new showonce/i }))
     expect(screen.getByRole('dialog', { name: /new showonce/i })).toBeTruthy()
@@ -91,6 +137,7 @@ describe('ShowOnce product routes', () => {
     expect(await screen.findByText('Give this ShowOnce a name.')).toBeTruthy()
 
     await user.type(screen.getByLabelText(/showonce name/i), 'Quarterly close')
+    await selectNorthstarTargetApp(user)
     await user.click(screen.getByRole('button', { name: /create showonce/i }))
 
     await waitFor(() =>
@@ -105,8 +152,7 @@ describe('ShowOnce product routes', () => {
   })
 
   it('opens and closes an accessible mobile navigation drawer', async () => {
-    const user = userEvent.setup()
-    await renderRoute('/app')
+    const { user } = await renderWorkspace('/app')
 
     const trigger = screen.getByRole('button', { name: /open navigation/i })
     await user.click(trigger)
@@ -128,18 +174,15 @@ describe('ShowOnce product routes', () => {
 
   it('automatically captures a real Northstar Benefits walkthrough with no manual step picking', async () => {
     await resetDemo(repositories)
-    const user = userEvent.setup()
-    const router = await renderRoute('/app')
-
+    const { user, router } = await renderWorkspace('/app')
     await user.click(screen.getByRole('button', { name: /new showonce/i }))
     await user.type(
       screen.getByLabelText(/showonce name/i),
       'Renew dental coverage',
     )
+    await selectNorthstarTargetApp(user)
     await user.click(screen.getByRole('button', { name: /create showonce/i }))
 
-    // Samuel uses the real website normally — ShowOnce never exposes a
-    // manual procedure-step picker.
     await user.click(await screen.findByRole('button', { name: /review renewal/i }))
     await user.click(await screen.findByRole('button', { name: /manage coverage/i }))
     await user.click(await screen.findByRole('radio', { name: /^annual$/i }))
@@ -160,6 +203,7 @@ describe('ShowOnce product routes', () => {
       ),
     )
     expect(await screen.findByText(/7 meaningful actions captured/i)).toBeTruthy()
+    await user.type(screen.getByLabelText(/^recipient$/i), 'Jordan')
     await user.click(
       await screen.findByRole('button', { name: /create recipient link/i }),
     )
@@ -176,25 +220,21 @@ describe('ShowOnce product routes', () => {
       })
     })
     await user.click(await screen.findByRole('button', { name: /open task/i }))
-    // Mom sees the same connected website, now populated with her own state.
-    expect(await screen.findByText('Welcome, Mom')).toBeTruthy()
+    expect(await screen.findByText('Welcome, Jordan')).toBeTruthy()
     await user.click(
       await screen.findByRole('button', { name: /choose gold at \$142/i }),
     )
-    // One atomic human action: check the personal attestation, then a
-    // single "Confirm & submit" click both attests and submits — no
-    // separate "confirm" step, no second WebMCP turn.
     await user.click(
       await screen.findByRole('checkbox', {
-        name: /i am mom and i approve/i,
+        name: /i am jordan and i approve/i,
       }),
     )
     await user.click(
       screen.getByRole('button', { name: /confirm & submit/i }),
     )
 
-    expect(await screen.findByText(/mom’s benefits are submitted/i)).toBeTruthy()
-    expect((await repositories.accounts.get('mom-normal'))?.submittedAt).not.toBe(
+    expect(await screen.findByText(/jordan’s plan is renewed/i)).toBeTruthy()
+    expect((await repositories.accounts.get('recipient-normal'))?.submittedAt).not.toBe(
       null,
     )
   })
@@ -276,7 +316,7 @@ describe('ShowOnce product routes', () => {
     )
     await user.click(
       await screen.findByRole('checkbox', {
-        name: /i am mom and i approve/i,
+        name: /i am the recipient and i approve/i,
       }),
     )
     const complete = vi
@@ -289,13 +329,13 @@ describe('ShowOnce product routes', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Completion failed. Your renewal was not submitted; please retry.',
     )
-    expect((await repositories.accounts.get('mom-normal'))?.submittedAt).toBeNull()
+    expect((await repositories.accounts.get('recipient-normal'))?.submittedAt).toBeNull()
 
     await user.click(
       screen.getByRole('button', { name: /confirm & submit/i }),
     )
     expect(complete).toHaveBeenCalledTimes(2)
-    expect(await screen.findByText(/mom’s benefits are submitted/i)).toBeTruthy()
+    expect(await screen.findByText(/the recipient’s plan is renewed/i)).toBeTruthy()
   })
 
   it('copies the live recipient link without any preview mode', async () => {
@@ -307,8 +347,11 @@ describe('ShowOnce product routes', () => {
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue(undefined)
 
-    const user = userEvent.setup()
-    await renderRoute(`/handoffs/${handoff.publicToken}`)
+    const { user, router } = await renderWorkspace('/app')
+    await act(async () => {
+      await router.navigate({ to: '/handoffs/$id', params: { id: handoff.publicToken } })
+    })
+    await waitFor(() => expect(router.state.status).toBe('idle'))
 
     expect(screen.getByText(`/s/${handoff.publicToken}?scenario=normal`)).toBeTruthy()
     expect(

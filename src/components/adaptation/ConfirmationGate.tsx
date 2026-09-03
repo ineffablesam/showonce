@@ -8,7 +8,7 @@ import type {
 import { Card } from '../ui/Card'
 import { Icon } from '../ui/Icon'
 
-/** Still used by Samuel's own demonstrator submit flow (see NorthstarApp) and
+/** Still used by the demonstrator submit flow (see NorthstarApp) and
  * by tests that exercise the underlying `create_confirmation`/`submit_renewal`
  * expiry semantics directly — kept here as the shared, generic helper. */
 export function confirmationStatus(
@@ -57,7 +57,7 @@ export function ConfirmationGate({
   differences,
   submitting,
   onConfirmAndSubmit,
-  recipientName = 'the recipient',
+  recipientName,
 }: {
   account: AccountState
   planName: string
@@ -65,7 +65,7 @@ export function ConfirmationGate({
   differences: AdaptationDifference[]
   submitting: boolean
   onConfirmAndSubmit: () => Promise<void>
-  recipientName?: string
+  recipientName: string
 }) {
   const [attested, setAttested] = useState(false)
   const renewalFrequency = account.preferences.renewalFrequency ?? 'annual'

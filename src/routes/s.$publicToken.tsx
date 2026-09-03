@@ -30,6 +30,8 @@ import type {
 import { repositories } from '../domain/repositories/appRepositories'
 import type { PublicHandoff } from '../domain/repositories/types'
 import { assertHandoffPolicyAllows } from '../domain/sharing/handoffPolicy'
+import { handoffRecipientName, possessive } from '../lib/handoffRecipient'
+import { useRecipientDecisionNotification } from '../hooks/useRecipientDecisionNotification'
 import type { ShowOnceToolName } from '../webmcp/types'
 import { useWebMCP } from '../webmcp/useWebMCP'
 
@@ -63,6 +65,8 @@ function RecipientRoute() {
   const queryClient = useQueryClient()
   const [choosing, setChoosing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [askingHelper, setAskingHelper] = useState(false)
+  const [helperError, setHelperError] = useState<string>()
   const [submissionError, setSubmissionError] = useState<string>()
   const [addressConfirmed, setAddressConfirmed] = useState(true)
   const [lastInvocation, setLastInvocation] = useState<WebMCPInvocation | null>(
@@ -74,7 +78,8 @@ function RecipientRoute() {
     },
     [],
   )
-  const accountId = scenario === 'normal' ? 'mom-normal' : 'mom-unavailable'
+  const accountId =
+    scenario === 'normal' ? 'recipient-normal' : 'recipient-unavailable'
 
   const handoff = useQuery({
     queryKey: ['public-handoff', publicToken, preview],
@@ -146,38 +151,53 @@ function RecipientRoute() {
     if (preview) throw new Error('Preview mode is read-only')
     if (!workflow.data) throw new Error('Workflow unavailable')
     if (!handoff.data?.policy) throw new Error('Handoff policy unavailable')
-    assertHandoffPolicyAllows(handoff.data.policy, 'request_helper')
-    const existing = workflow.data.helperRequestId
-      ? await repositories.helpRequests.getByPublicToken(
-          workflow.data.helperRequestId,
-        )
-      : null
-    const request = existing
-      ? {
-          id: existing.publicToken,
-          publicToken: existing.publicToken,
-          handoffId: publicToken,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          expiresAt: existing.expiresAt,
-          status: existing.status,
-          detail: existing.detail,
-          options: existing.options,
-        }
-      : await createHelpRequest(repositories, publicToken)
-    const next = await updateRecipientWorkflow(repositories, workflow.data, {
-      phase: 'awaiting_helper',
-      helperRequestId: request.publicToken,
-    })
-    queryClient.setQueryData(
-      ['recipient-run', publicToken, scenario, preview],
-      next,
-    )
-    await repositories.handoffs.transitionByPublicToken(
-      publicToken,
-      'needs_input',
-    )
-    return request
+    setHelperError(undefined)
+    setAskingHelper(true)
+    try {
+      assertHandoffPolicyAllows(handoff.data.policy, 'request_helper')
+      const helpDetail: 'plan_unavailable' | 'material_price_change' =
+        scenario === 'unavailable' ? 'plan_unavailable' : 'material_price_change'
+      const existing = workflow.data.helperRequestId
+        ? await repositories.helpRequests.getByPublicToken(
+            workflow.data.helperRequestId,
+          )
+        : null
+      const request = existing
+        ? {
+            id: existing.publicToken,
+            publicToken: existing.publicToken,
+            handoffId: publicToken,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            expiresAt: existing.expiresAt,
+            status: existing.status,
+            detail: existing.detail,
+            options: existing.options,
+          }
+        : await createHelpRequest(repositories, publicToken, {}, helpDetail)
+      const next = await updateRecipientWorkflow(repositories, workflow.data, {
+        phase: 'awaiting_helper',
+        helperRequestId: request.publicToken,
+      })
+      queryClient.setQueryData(
+        ['recipient-run', publicToken, scenario, preview],
+        next,
+      )
+      await repositories.handoffs.transitionByPublicToken(
+        publicToken,
+        'needs_input',
+      )
+      return request
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Could not send a request to the sender.'
+      setHelperError(message)
+      throw error
+    } finally {
+      setAskingHelper(false)
+    }
   }, [
     handoff.data?.policy,
     preview,
@@ -227,9 +247,13 @@ function RecipientRoute() {
         )
       : null
   const phase = workflow.data?.phase ?? 'explain'
-  // The recipient's name is a free-text story detail set when the sender
-  // created the handoff — it is never a fixed persona in the product itself.
-  const recipientName = handoff.data?.recipient ?? 'the recipient'
+  const recipientName = handoffRecipientName(handoff.data?.recipient)
+
+  useRecipientDecisionNotification(
+    decision.data,
+    workflow.data?.phase === 'awaiting_helper',
+    helperToken,
+  )
 
   const adapt = async () => {
     if (preview) return
@@ -381,13 +405,22 @@ function RecipientRoute() {
           <Card>
             <EmptyState
               detail="Ask the sender for a current recipient link."
+              icon="lock"
               title="This handoff is unavailable"
+            />
+          </Card>
+        ) : !recipientName ? (
+          <Card>
+            <EmptyState
+              detail="Ask the sender to recreate this link with a recipient name."
+              icon="lock"
+              title="Recipient name missing"
             />
           </Card>
         ) : phase === 'explain' ? (
           <div className="recipient-intro">
-            <span className="eyebrow">Shared by Samuel</span>
-            <h1>Samuel shared a task with you</h1>
+            <span className="eyebrow">Shared link for {recipientName}</span>
+            <h1>{recipientName}, you have a shared task</h1>
             <p>{handoff.data.title}</p>
             <span className="recipient-intro__app">
               <Icon name="lock" /> Northstar Benefits
@@ -435,12 +468,15 @@ function RecipientRoute() {
               phase === 'helper_resolved' ? (
                 <>
                   <AdaptationPanel
+                    askingHelper={askingHelper}
+                    helperError={helperError}
                     onAsk={() => void askHelper()}
                     onChoose={() => {
                       if (scenario === 'normal') void choosePlan('gold')
                       else setChoosing(true)
                     }}
                     recipient={account.data}
+                    recipientName={recipientName}
                     result={adaptation}
                     scenario={scenario}
                   />
@@ -504,9 +540,9 @@ function RecipientRoute() {
                     <Icon name="check" />
                   </span>
                   <span className="eyebrow">Done</span>
-                  <h1>{recipientName}’s plan is renewed.</h1>
+                  <h1>{possessive(recipientName)} plan is renewed.</h1>
                   <p>
-                    {recipientName}’s benefits are submitted. The handoff
+                    {possessive(recipientName)} benefits are submitted. The handoff
                     completed with recipient confirmation.
                   </p>
                   <div className="adaptation-facts">

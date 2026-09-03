@@ -40,7 +40,7 @@ export function CreateHandoffDialog({
   const form = useForm({
     defaultValues: {
       title: procedure.title,
-      recipient: 'Mom',
+      recipient: '',
       note: '',
       expirationDays: 7 as const,
       allowSafePreferences: true,
@@ -110,17 +110,21 @@ export function CreateHandoffDialog({
         >
           {(field) => (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-neutral-700">
-                Recipient
-              </span>
-              <input
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10"
-                name={field.name}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="e.g. Mom"
-                value={field.state.value}
-              />
+            <span className="text-sm font-medium text-neutral-700">
+              Recipient name
+            </span>
+            <input
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(event) => field.handleChange(event.target.value)}
+              placeholder="Who will open this link?"
+              value={field.state.value}
+            />
+            <small className="text-xs leading-snug text-neutral-500">
+              Used on the shared link only — welcome text, attestation, and
+              pricing copy. No separate login for recipients.
+            </small>
               {field.state.meta.errors[0] ? (
                 <small className="text-xs font-medium text-red-600">
                   {String(field.state.meta.errors[0])}

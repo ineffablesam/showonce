@@ -23,7 +23,17 @@ import {
   validateHelpRequest,
   validateProcedure,
 } from '../domain/sharing/validation'
-import { getOrCreateOwnerCapability } from './ownerCapability'
+import {
+  normalizeUsername,
+  usernameValidationMessage,
+} from '../lib/workspaceUsername'
+import { ownerTokenHashHex } from '../lib/ownerTokenHash'
+import {
+  clearWorkspaceSession,
+  getOrCreateOwnerCapability,
+  getWorkspaceUsername,
+  openWorkspaceSession,
+} from './ownerCapability'
 import {
   getOrCreateRecipientCapability,
   getRecipientCapability,
@@ -126,6 +136,14 @@ async function unwrap<T>(
   return data as T
 }
 
+function shouldSkipOptionalSupabaseRpc(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return (
+    /shared persistence is unavailable/iu.test(error.message) ||
+    /could not find the function|schema cache/iu.test(error.message)
+  )
+}
+
 export const getSharedPersistenceMode = createServerFn({
   method: 'GET',
 }).handler(() => {
@@ -142,11 +160,113 @@ export const getSharedPersistenceMode = createServerFn({
   }
 })
 
+export const getWorkspaceSessionServer = createServerFn({
+  method: 'GET',
+}).handler(() => {
+  const username = getWorkspaceUsername()
+  if (!username) return null
+  try {
+    getOrCreateOwnerCapability()
+  } catch {
+    return null
+  }
+  return { username }
+})
+
+export const getWorkspaceRealtimeServer = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const url = process.env.SUPABASE_URL
+  const anonKey = process.env.SUPABASE_ANON_KEY
+  if (!url || !anonKey) return null
+
+  try {
+    const token = getOrCreateOwnerCapability()
+    return {
+      url,
+      anonKey,
+      channelKey: await ownerTokenHashHex(token),
+    }
+  } catch {
+    return null
+  }
+})
+
+export const getPublicRealtimeServer = createServerFn({
+  method: 'GET',
+}).handler(() => {
+  const url = process.env.SUPABASE_URL
+  const anonKey = process.env.SUPABASE_ANON_KEY
+  if (!url || !anonKey) return null
+  return { url, anonKey }
+})
+
+export const openWorkspaceServer = createServerFn({ method: 'POST' })
+  .validator((value: unknown) => {
+    const record = inputRecord(value, ['username'])
+    if (typeof record.username !== 'string') {
+      throw new Error('Username is required')
+    }
+    const message = usernameValidationMessage(record.username)
+    if (message) throw new Error(message)
+    return { username: normalizeUsername(record.username) }
+  })
+  .handler(async ({ data }) => {
+    const session = await openWorkspaceSession(data.username)
+    try {
+      await unwrap(
+        rpcClient().rpc('claim_workspace_username', {
+          p_owner_token: session.token,
+          p_username: session.username,
+        }),
+      )
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not claim username'
+      if (/username already taken/iu.test(message)) {
+        throw new Error('That username is already taken. Choose another.')
+      }
+      if (!shouldSkipOptionalSupabaseRpc(error)) {
+        console.warn('Workspace username claim skipped', error)
+      }
+    }
+    return session
+  })
+
+export const deleteWorkspaceAccountServer = createServerFn({ method: 'POST' })
+  .handler(async () => {
+    let token: string | null = null
+    try {
+      token = getOrCreateOwnerCapability()
+    } catch {
+      clearWorkspaceSession()
+      return { cleared: true as const }
+    }
+
+    try {
+      await unwrap(
+        rpcClient().rpc('delete_workspace_account', {
+          p_owner_token: token,
+        }),
+      )
+    } catch (error) {
+      if (!shouldSkipOptionalSupabaseRpc(error)) {
+        throw error instanceof Error
+          ? error
+          : new Error('Could not delete workspace account.')
+      }
+    } finally {
+      clearWorkspaceSession()
+    }
+
+    return { cleared: true as const }
+  })
+
 export const ensureOwnerWorkspaceServer = createServerFn({
   method: 'POST',
 }).handler(() => {
   getOrCreateOwnerCapability()
-  return { ready: true as const }
+  return { ready: true as const, username: getWorkspaceUsername() }
 })
 
 export const createProcedureServer = createServerFn({ method: 'POST' })

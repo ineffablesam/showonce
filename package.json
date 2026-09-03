@@ -17,6 +17,7 @@
     "check": "prettier --check ."
   },
   "dependencies": {
+    "@qpokychuk/sf-pro-display": "^1.0.2",
     "@solar-icons/react": "^2.1.0",
     "@supabase/supabase-js": "^2.114.0",
     "@tailwindcss/vite": "^4.1.18",
@@ -27,10 +28,12 @@
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-start": "latest",
     "@tanstack/react-table": "^9.2.4",
+    "framer-motion": "^13.2.0",
     "lucide-react": "^1.39.0",
     "nitro": "^3.0.260610-beta",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sileo": "^0.1.5",
     "tailwindcss": "^4.1.18",
     "webmcp-types": "^0.1.5"
   },

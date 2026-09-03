@@ -124,10 +124,10 @@ describe('review-critical product behavior', () => {
     const handoff: Handoff = {
       id: 'portable',
       procedureId: procedure.id,
-      title: 'For Mom',
+      title: 'For Alex',
       createdAt: 2,
       procedure,
-      recipient: 'Mom',
+      recipient: 'Alex',
       note: 'Please review',
       expiresAt: 2 + 7 * 24 * 60 * 60 * 1000,
       policy: {
@@ -235,7 +235,7 @@ describe('review-critical product behavior', () => {
       repositories,
       'handoff-1',
       'unavailable',
-      'mom-unavailable',
+      'recipient-unavailable',
     )
     const recommendation = await recordHelperRecommendation(
       repositories,

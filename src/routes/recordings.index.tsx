@@ -84,6 +84,8 @@ function Recordings() {
           <Card>
             <EmptyState
               detail="Use New ShowOnce to record the connected benefits flow."
+              icon="record"
+              iconTone="ink"
               title="No recordings yet"
             />
           </Card>

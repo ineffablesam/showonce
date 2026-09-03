@@ -126,6 +126,8 @@ function BenefitsRoute() {
         <Card>
           <EmptyState
             detail="Start a New ShowOnce from the workspace to open Northstar Benefits and begin recording."
+            icon="record"
+            iconTone="ink"
             title="No active recording"
           />
           <Link className="button button--primary" to="/app">
@@ -152,7 +154,7 @@ function BenefitsRoute() {
           <NorthstarApp
             account={accountQuery.data}
             addressConfirmed={addressConfirmed}
-            memberName="Samuel"
+            memberName="You"
             mode="demonstrator"
             onAddressConfirm={() => setAddressConfirmed(true)}
             runCommand={(command) => action.mutateAsync(command)}

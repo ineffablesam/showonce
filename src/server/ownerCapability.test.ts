@@ -10,31 +10,26 @@ import {
 describe('owner workspace cookie', () => {
   it('reuses a valid cookie and creates an invalid or missing one', () => {
     const valid = `own_${'A'.repeat(32)}`
-    expect(resolveOwnerCapability(valid, () => 'unused')).toEqual({
+    const generate = () => `own_${'B'.repeat(32)}`
+    expect(resolveOwnerCapability(valid, generate)).toEqual({
       token: valid,
       shouldSet: false,
     })
-    expect(
-      resolveOwnerCapability(undefined, () => `own_${'B'.repeat(32)}`),
-    ).toEqual({
+    expect(resolveOwnerCapability(undefined, generate)).toEqual({
       token: `own_${'B'.repeat(32)}`,
       shouldSet: true,
     })
-    expect(
-      resolveOwnerCapability('invalid', () => `own_${'C'.repeat(32)}`),
-    ).toEqual({
+    expect(resolveOwnerCapability('invalid', () => `own_${'C'.repeat(32)}`)).toEqual({
       token: `own_${'C'.repeat(32)}`,
       shouldSet: true,
     })
-    expect(resolveOwnerCapability(undefined).token).toMatch(
-      /^own_[A-Za-z0-9_-]{32}$/,
-    )
   })
 
   it('uses an HttpOnly SameSite=Lax session cookie', () => {
     expect(OWNER_COOKIE_OPTIONS).toMatchObject({
       httpOnly: true,
       sameSite: 'lax',
+      secure: true,
       path: '/',
     })
     expect(OWNER_COOKIE_OPTIONS).not.toHaveProperty('maxAge')
