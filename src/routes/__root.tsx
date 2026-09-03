@@ -28,14 +28,10 @@ export const Route = createRootRoute({
           'Capture task intent once and create safe, outcome-aware handoffs.',
       },
     ],
-    links: appCss
-      ? [
-          {
-            rel: 'stylesheet',
-            href: appCss,
-          },
-        ]
-      : [],
+    links: [
+      { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
+      ...(appCss ? [{ rel: 'stylesheet', href: appCss }] : []),
+    ],
   }),
   component: RootComponent,
   shellComponent: RootDocument,

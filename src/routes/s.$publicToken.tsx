@@ -5,7 +5,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { WebMCPStatus } from '../app/TopBar'
 import { AdaptationPanel } from '../components/adaptation/AdaptationPanel'
 import { ConfirmationGate } from '../components/adaptation/ConfirmationGate'
-import { BrowserFrame } from '../components/browser/BrowserFrame'
 import { NorthstarApp } from '../components/northstar/NorthstarApp'
 import type { WebMCPInvocation } from '../components/northstar/WebMCPLivePanel'
 import { WebMCPLivePanel } from '../components/northstar/WebMCPLivePanel'
@@ -428,17 +427,15 @@ function RecipientRoute() {
         ) : (
           <div className="northstar-shell">
             <div className="northstar-shell__frame">
-              <BrowserFrame url="benefits.northstar.app">
-                <NorthstarApp
-                  account={account.data}
-                  addressConfirmed={addressConfirmed}
-                  memberName={recipientName}
-                  mode="recipient"
-                  onAddressConfirm={() => setAddressConfirmed(true)}
-                  runCommand={runNorthstarCommand}
-                  submissionHint={submissionHintForPhase(phase)}
-                />
-              </BrowserFrame>
+              <NorthstarApp
+                account={account.data}
+                addressConfirmed={addressConfirmed}
+                memberName={recipientName}
+                mode="recipient"
+                onAddressConfirm={() => setAddressConfirmed(true)}
+                runCommand={runNorthstarCommand}
+                submissionHint={submissionHintForPhase(phase)}
+              />
             </div>
             <aside className="northstar-shell__panel">
               <WebMCPLivePanel lastInvocation={lastInvocation} webmcp={webmcp} />

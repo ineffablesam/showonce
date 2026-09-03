@@ -301,19 +301,31 @@ describe('ShowOnce product routes', () => {
     expect(await screen.findByText(/mom’s benefits are submitted/i)).toBeTruthy()
   })
 
-  it('keeps copied recipient URL live while sender links enter preview', async () => {
+  it('copies the live recipient link without any preview mode', async () => {
     await resetDemo(repositories)
     const handoff = (await repositories.handoffs.list())[0]
     if (!handoff.publicToken) throw new Error('Seed handoff token missing')
 
+    const writeText = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined)
+
+    const user = userEvent.setup()
     await renderRoute(`/handoffs/${handoff.publicToken}`)
 
     expect(screen.getByText(`/s/${handoff.publicToken}?scenario=normal`)).toBeTruthy()
-    for (const link of [
-      screen.getByRole('link', { name: /open recipient view/i }),
-      ...screen.getAllByRole('link', { name: /preview scenario/i }),
-    ]) {
-      expect(link.getAttribute('href')).toContain('preview=true')
-    }
+    expect(
+      screen.queryByRole('link', { name: /open recipient view/i }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('link', { name: /preview scenario/i }),
+    ).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /copy link/i }))
+
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining(`/s/${handoff.publicToken}?scenario=normal`),
+    )
+    expect(await screen.findByRole('button', { name: /^copied$/i })).toBeTruthy()
   })
 })

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 
 import { AppShell } from '../app/AppShell'
 import { Card, EmptyState } from '../components/ui/Card'
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/handoffs/$id')({
 
 function HandoffDetail() {
   const { id } = Route.useParams()
+  const [copied, setCopied] = useState(false)
   const handoff = useQuery({
     queryKey: ['handoff', id],
     queryFn: async () =>
@@ -38,6 +40,19 @@ function HandoffDetail() {
     tool.scopes.includes('recipient'),
   )
   const recipientName = handoff.data?.recipient ?? 'the recipient'
+  const shareUrl =
+    typeof window === 'undefined' ? sharePath : `${window.location.origin}${sharePath}`
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+    } catch {
+      // Clipboard access can be denied by the browser; the link text is
+      // still visible and selectable as a fallback.
+    }
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2_000)
+  }
 
   return (
     <AppShell>
@@ -64,15 +79,19 @@ function HandoffDetail() {
             <div>
               <small>Recipient link</small>
               <code>{sharePath}</code>
+              <p className="share-card__hint">
+                Paste this into a WebMCP-capable browser (e.g. ChatGPT) and say
+                “Do what Samuel showed me.”
+              </p>
             </div>
-            <Link
-              className="button button--primary"
-              params={{ publicToken: id }}
-              search={{ preview: true, scenario: 'normal' }}
-              to="/s/$publicToken"
+            <button
+              className={`button ${copied ? 'button--secondary' : 'button--primary'}`}
+              onClick={() => void copyLink()}
+              type="button"
             >
-              Open recipient view
-            </Link>
+              <Icon name={copied ? 'check' : 'clipboard'} />
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
           </Card>
           <div className="handoff-audit-grid">
             <Card>
@@ -99,14 +118,6 @@ function HandoffDetail() {
                   <p>{difference.detail}</p>
                 </div>
               ))}
-              <Link
-                className="text-link"
-                params={{ publicToken: id }}
-                search={{ preview: true, scenario: 'normal' }}
-                to="/s/$publicToken"
-              >
-                Preview scenario — normal <Icon name="arrow" />
-              </Link>
             </Card>
             <Card>
               <span className="eyebrow">Activity</span>
@@ -141,14 +152,6 @@ function HandoffDetail() {
               <span className="eyebrow">Plan unavailable preview</span>
               <h2>No automatic substitute</h2>
               <p>{recipientName} chooses or requests a minimum-information decision.</p>
-              <Link
-                className="text-link"
-                params={{ publicToken: id }}
-                search={{ preview: true, scenario: 'unavailable' }}
-                to="/s/$publicToken"
-              >
-                Preview scenario — unavailable <Icon name="arrow" />
-              </Link>
             </Card>
           </div>
         </div>
