@@ -69,10 +69,26 @@ export function createRecipientAccount(
       communication: 'mail',
       renewalFrequency: 'monthly',
     },
-    address: '14 Cedar Lane',
+    address: '121 Lincoln Street',
     dependents: ['Avery', 'Casey'],
     submittedAt: null,
   }
+}
+
+export async function loadRecipientAccount(
+  repositories: Pick<ShowOnceRepositories, 'accounts'>,
+  scenario: 'normal' | 'unavailable',
+): Promise<AccountState> {
+  const accountId =
+    scenario === 'normal' ? 'recipient-normal' : 'recipient-unavailable'
+  const existing = await repositories.accounts.get(accountId)
+  const account = existing ?? createRecipientAccount(scenario)
+  if (account.address === '14 Cedar Lane') {
+    const updated = { ...account, address: '121 Lincoln Street' }
+    await repositories.accounts.save(updated)
+    return updated
+  }
+  return account
 }
 
 export async function startRecording(

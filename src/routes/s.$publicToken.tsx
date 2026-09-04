@@ -14,7 +14,7 @@ import {
   attestAndSubmitRenewal,
   createDemoAccount,
   createHelpRequest,
-  createRecipientAccount,
+  loadRecipientAccount,
   createRecipientWorkflow,
   updateRecipientWorkflow,
 } from '../domain/integration/productFlow'
@@ -81,9 +81,7 @@ function RecipientRoute() {
   })
   const account = useQuery({
     queryKey: ['account', accountId],
-    queryFn: async () =>
-      (await repositories.accounts.get(accountId)) ??
-      createRecipientAccount(scenario),
+    queryFn: () => loadRecipientAccount(repositories, scenario),
   })
   const workflow = useQuery<RecipientWorkflowRun>({
     queryKey: ['recipient-run', publicToken, scenario, preview],
@@ -587,7 +585,7 @@ function useRecipientWebMCP({
     planId: string
     authorizedBy: 'human' | 'helper'
   } | null>(null)
-  const activeHelpRequestIdRef = useRef<string | undefined>()
+  const activeHelpRequestIdRef = useRef<string | undefined>(undefined)
   accountRef.current = account
   handoffRef.current = handoff
   runRef.current = run
