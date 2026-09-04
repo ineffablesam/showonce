@@ -270,7 +270,10 @@ export function NorthstarApp({
               account={account}
               addressConfirmed={addressConfirmed}
               busy={busy}
-              onConfirmAddress={async () => {
+              onConfirmAddress={async (address) => {
+                if (address.trim() !== account.address.trim()) {
+                  await act({ type: 'set_address', address: address.trim() })
+                }
                 await act({ type: 'review_recipient_details' })
                 onAddressConfirm()
               }}
@@ -584,10 +587,12 @@ function RenewalStep2({
 }: {
   account: AccountState
   addressConfirmed: boolean
-  onConfirmAddress: () => Promise<void>
+  onConfirmAddress: (address: string) => Promise<void>
   onContinue: () => void
   busy: boolean
 }) {
+  const [address, setAddress] = useState(account.address)
+
   return (
     <div className="northstar-screen renewal-wizard">
       <ol className="renewal-wizard__steps">
@@ -598,8 +603,19 @@ function RenewalStep2({
       </ol>
       <div className="northstar-screen__heading">
         <h1>Address</h1>
-        <p>{account.address}</p>
+        <p>Update this if the member has moved, then confirm.</p>
       </div>
+      <label className="northstar-field" htmlFor="renewal-address">
+        <span className="northstar-field__label">Mailing address</span>
+        <input
+          className="northstar-field__input"
+          disabled={addressConfirmed || busy}
+          id="renewal-address"
+          onChange={(event) => setAddress(event.target.value)}
+          type="text"
+          value={address}
+        />
+      </label>
       {addressConfirmed ? (
         <StatusChip tone="active">Confirmed</StatusChip>
       ) : (
@@ -607,11 +623,11 @@ function RenewalStep2({
           <StatusChip tone="warn">Needs confirmation</StatusChip>
           <button
             className="button button--ghost"
-            disabled={busy}
-            onClick={() => void onConfirmAddress()}
+            disabled={busy || address.trim() === ''}
+            onClick={() => void onConfirmAddress(address)}
             type="button"
           >
-            Confirm address is current
+            Save &amp; confirm address
           </button>
         </>
       )}
@@ -727,7 +743,7 @@ function RenewalReview({
         </div>
         <div>
           <small>Address</small>
-          <strong>Updated</strong>
+          <strong>{account.address}</strong>
         </div>
       </div>
       {mode === 'demonstrator' && onSubmit ? (

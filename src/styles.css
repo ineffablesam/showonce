@@ -4270,6 +4270,44 @@ input[type='checkbox']:focus-visible {
   font-weight: 700;
 }
 
+.northstar-field {
+  display: block;
+  margin: 12px 0;
+}
+
+.northstar-field__label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+  font-family: var(--ns-font-small);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.northstar-field__input {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--ns-line);
+  border-radius: 0;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--ns-ink);
+  font-family: var(--ns-font-ui);
+  font-size: 13px;
+}
+
+.northstar-field__input:focus {
+  border-color: var(--ns-accent);
+  outline: 2px solid var(--ns-highlight);
+  outline-offset: 0;
+}
+
+.northstar-field__input:disabled {
+  background: #f2f2f2;
+  color: #555;
+}
+
 .radio-option:last-child {
   border-right: 0;
 }
