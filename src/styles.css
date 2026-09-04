@@ -3593,6 +3593,11 @@ input[type='checkbox']:focus-visible {
   font-family: var(--ns-font-ui);
   font-size: 12px;
   line-height: 1.4;
+  /* Size-based breakpoints below key off this element's own rendered width
+     (not the browser viewport), since WaitingRoom.gov is often embedded next
+     to a recorder rail / sidebar and its real width can be much narrower
+     than the viewport. */
+  container: northstar / inline-size;
 }
 
 /* Verdana — small chrome, labels, table headers */
@@ -3798,7 +3803,11 @@ input[type='checkbox']:focus-visible {
   display: none;
 }
 
-@media (min-width: 640px) {
+/* These key off the portal's own rendered width via the `northstar`
+   container (see .northstar-app), not the browser viewport — so the strip
+   only adds banners when there's genuinely room for them, whether
+   WaitingRoom.gov is full-bleed or squeezed next to a recorder rail. */
+@container northstar (min-width: 460px) {
   .northstar-app__ad-banners {
     height: 72px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3810,7 +3819,7 @@ input[type='checkbox']:focus-visible {
   }
 }
 
-@media (min-width: 1024px) {
+@container northstar (min-width: 760px) {
   .northstar-app__ad-banners {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -4493,7 +4502,7 @@ input[type='checkbox']:focus-visible {
   font-size: 12px;
 }
 
-@media (max-width: 720px) {
+@container northstar (max-width: 720px) {
   .northstar-app__brand {
     font-size: 15px;
     line-height: 1.25;
