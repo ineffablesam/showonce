@@ -81,7 +81,7 @@ async function selectNorthstarTargetApp(
 ) {
   await user.click(screen.getByRole('button', { name: /select the app/i }))
   await user.click(
-    screen.getByRole('option', { name: /northstar benefits demo/i }),
+    screen.getByRole('option', { name: /waitingroom\.gov demo/i }),
   )
 }
 
@@ -96,7 +96,7 @@ describe('ShowOnce product routes', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/app'))
   })
 
-  it('enters the Northstar Benefits demo from its stable route', async () => {
+  it('enters the WaitingRoom.gov demo from its stable route', async () => {
     const router = await renderRoute('/demo')
     expect(router.state.location.pathname).toBe('/demo/benefits/renewal')
   })
@@ -144,7 +144,7 @@ describe('ShowOnce product routes', () => {
       expect(router.state.location.pathname).toBe('/demo/benefits/renewal'),
     )
     expect(router.state.location.search.recording).toBeTruthy()
-    expect((await screen.findAllByText(/northstar benefits/i)).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(/waitingroom\.gov/i)).length).toBeGreaterThan(0)
     expect(await screen.findByText('Actions captured')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: /finish showing/i }).hasAttribute('disabled'),
@@ -172,7 +172,7 @@ describe('ShowOnce product routes', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger))
   })
 
-  it('automatically captures a real Northstar Benefits walkthrough with no manual step picking', async () => {
+  it('automatically captures a real WaitingRoom.gov walkthrough with no manual step picking', async () => {
     await resetDemo(repositories)
     const { user, router } = await renderWorkspace('/app')
     await user.click(screen.getByRole('button', { name: /new showonce/i }))

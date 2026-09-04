@@ -202,9 +202,11 @@ describe('focused route-scoped WebMCP tools', () => {
       'benefits_set_renewal_period',
       'benefits_set_paperless',
       'benefits_preview_renewal',
+      'benefits_select_plan',
       'showonce_request_helper',
       'showonce_get_helper_decision',
       'benefits_prepare_renewal',
+      'showonce_request_human_approval',
     ])
     expect(SHOWONCE_TOOLS.some(({ name }) => name.includes('confirmation'))).toBe(
       false,
@@ -214,7 +216,7 @@ describe('focused route-scoped WebMCP tools', () => {
   it('registers all recipient tools only on the recipient route and one in the library', async () => {
     const recipient = setup()
     await registerWebMCPTools(recipient.context)
-    expect(recipient.registrations).toHaveLength(12)
+    expect(recipient.registrations).toHaveLength(14)
 
     const library = setup()
     await registerWebMCPTools({ ...library.context, scope: 'library' })
@@ -247,8 +249,10 @@ describe('focused route-scoped WebMCP tools', () => {
     )
   })
 
-  it('prepares a renewal summary once a plan is selected — and this is the last step any agent can take', async () => {
+  it('prepares a renewal summary once a plan is selected — and opens human approval', async () => {
     const fixture = setup()
+    const onRequestHumanApproval = vi.fn()
+    fixture.context.onRequestHumanApproval = onRequestHumanApproval
     fixture.context.getRecipientState = () => ({ ...state, selectedPlanId: 'gold' })
     await registerWebMCPTools(fixture.context)
     const prepare = fixture.registrations.find(
@@ -261,9 +265,11 @@ describe('focused route-scoped WebMCP tools', () => {
     expect(prepareResult).toMatchObject({
       ok: true,
       awaitingHumanApproval: true,
+      approvalModalOpen: true,
       summary: expect.objectContaining({ planId: 'gold', monthlyPrice: 142 }),
     })
     expect(fixture.execute).toHaveBeenCalledWith({ type: 'preview_renewal' })
+    expect(onRequestHumanApproval).toHaveBeenCalledTimes(1)
     // No tool named benefits_submit_renewal (or anything else) exists for an
     // agent to call next — submission is exclusively a human UI action.
     expect(

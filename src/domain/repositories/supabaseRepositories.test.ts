@@ -168,6 +168,7 @@ class FakeSharedTransport implements SharedTransport {
       createdAt: stored.createdAt,
       expiresAt: stored.expiresAt,
       status: stored.status,
+      ...(stored.recipient ? { recipient: stored.recipient } : {}),
       procedure: {
         title: stored.procedure?.title ?? stored.title,
         steps: (stored.procedure?.steps ?? []).map(
@@ -960,7 +961,7 @@ describe('Supabase repository capability flow', () => {
     })
     const result = await repositories.handoffs.getByPublicToken(handoffToken, 2)
     expect(result).not.toHaveProperty('id')
-    expect(result).not.toHaveProperty('recipient')
+    expect(result?.recipient).toBe('Alex')
     expect(result).not.toHaveProperty('note')
     expect(result?.procedure).not.toHaveProperty('id')
     expect(result?.procedure).not.toHaveProperty('recordingId')
@@ -1279,5 +1280,25 @@ describe('migration repair contract', () => {
     expect(repairMigration).toMatch(
       /grant execute on function public\.create_handoff\(text, jsonb\) to anon;/u,
     )
+  })
+})
+
+describe('public handoff recipient migration contract', () => {
+  const migration = readFileSync(
+    fileURLToPath(
+      new URL(
+        '../../../supabase/migrations/20260904000000_public_handoff_recipient.sql',
+        import.meta.url,
+      ),
+    ),
+    'utf8',
+  )
+
+  it('projects recipient from handoff payload into public_handoff_json', () => {
+    expect(migration).toMatch(
+      /create or replace function public\.public_handoff_json\(h public\.handoffs\)/iu,
+    )
+    expect(migration).toContain("'recipient', h.payload->'recipient'")
+    expect(migration).toContain('jsonb_strip_nulls')
   })
 })

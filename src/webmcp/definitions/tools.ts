@@ -64,7 +64,7 @@ export const SHOWONCE_TOOLS = [
     name: 'benefits_set_renewal_period',
     title: 'Set renewal period',
     description:
-      'Sets the recipient renewal frequency to monthly or annual. The connected Northstar Benefits page updates immediately.',
+      'Sets the recipient renewal frequency to monthly or annual. The connected WaitingRoom.gov page updates immediately.',
     inputSchema: objectSchema(
       { period: { type: 'string', enum: ['monthly', 'annual'] } },
       ['period'],
@@ -76,7 +76,7 @@ export const SHOWONCE_TOOLS = [
     name: 'benefits_set_paperless',
     title: 'Set paperless communication',
     description:
-      'Turns paperless communication on or off. The connected Northstar Benefits page updates immediately.',
+      'Turns paperless communication on or off. The connected WaitingRoom.gov page updates immediately.',
     inputSchema: objectSchema(
       { enabled: { type: 'boolean' } },
       ['enabled'],
@@ -89,6 +89,15 @@ export const SHOWONCE_TOOLS = [
     title: 'Preview renewal',
     description: 'Runs a non-submitting renewal preview against current state.',
     inputSchema: objectSchema(),
+    annotations: { readOnlyHint: false },
+    scopes: ['recipient'],
+  },
+  {
+    name: 'benefits_select_plan',
+    title: 'Select a plan',
+    description:
+      'Selects the renewal plan for this recipient. The connected WaitingRoom.gov page updates immediately.',
+    inputSchema: objectSchema({ planId: { type: 'string' } }, ['planId']),
     annotations: { readOnlyHint: false },
     scopes: ['recipient'],
   },
@@ -112,7 +121,16 @@ export const SHOWONCE_TOOLS = [
     name: 'benefits_prepare_renewal',
     title: 'Prepare renewal for human approval',
     description:
-      'Validates a plan is selected and packages the final renewal summary. This is the last step an agent can take — actually submitting requires a personal human attestation that no WebMCP tool can perform.',
+      'Validates a plan is selected and opens the human approval dialog. This is the last step an agent can take — the recipient must personally approve and submit.',
+    inputSchema: objectSchema(),
+    annotations: { readOnlyHint: false },
+    scopes: ['recipient'],
+  },
+  {
+    name: 'showonce_request_human_approval',
+    title: 'Request human approval',
+    description:
+      'Opens the ShowOnce approval dialog so the recipient can review and submit the prepared renewal. Call after selecting a plan and applying safe preferences.',
     inputSchema: objectSchema(),
     annotations: { readOnlyHint: false },
     scopes: ['recipient'],

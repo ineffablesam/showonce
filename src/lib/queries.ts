@@ -12,6 +12,7 @@ export const handoffsQuery = queryOptions({
   queryKey: ['handoffs'],
   queryFn: () => repositories.handoffs.list(),
   staleTime: 30_000,
+  refetchInterval: 10_000,
 })
 
 export const activityQuery = queryOptions({

@@ -2,6 +2,12 @@ import { Link } from '@tanstack/react-router'
 
 import { Card, EmptyState } from '../components/ui/Card'
 import { Icon } from '../components/ui/Icon'
+import {
+  formatHandoffStatus,
+  handoffStatusPillClass,
+  isActiveHandoff,
+  sortHandoffsByRecency,
+} from '../lib/handoffDashboard'
 import { useWorkspaceOverview } from '../lib/queries'
 import { useWorkspaceSession } from '../hooks/useWorkspaceSession'
 import { formatUsernameLabel } from '../lib/workspaceUsername'
@@ -43,6 +49,7 @@ export function DashboardPage() {
 
   const procedures = overview.procedures.data ?? []
   const handoffs = overview.handoffs.data ?? []
+  const activeHandoffs = sortHandoffsByRecency(handoffs.filter(isActiveHandoff))
   const activity = overview.activity.data ?? []
   const recordings = overview.recordings.data ?? []
   const openRequests =
@@ -53,7 +60,14 @@ export function DashboardPage() {
   ).length
   const completionRate = recordings.length
     ? Math.round((finishedRecordings / recordings.length) * 100)
-    : 0
+    : procedures.length
+      ? 100
+      : 0
+  const completionDetail = recordings.length
+    ? `${finishedRecordings} of ${recordings.length} finished`
+    : procedures.length
+      ? `${procedures.length} procedure${procedures.length === 1 ? '' : 's'} ready to share`
+      : 'No captures yet'
   const today = new Intl.DateTimeFormat('en', {
     weekday: 'long',
     month: 'long',
@@ -118,7 +132,7 @@ export function DashboardPage() {
         <div className="page-heading__signal">
           <span>Recording completion</span>
           <strong>{completionRate}%</strong>
-          <small>{finishedRecordings} of {recordings.length} finished</small>
+          <small>{completionDetail}</small>
         </div>
       </div>
 
@@ -144,8 +158,14 @@ export function DashboardPage() {
             </span>
             <div>
               <small>Active handoffs</small>
-              <strong>{handoffs.length}</strong>
-              <span>Across your workspace</span>
+              <strong>{activeHandoffs.length}</strong>
+              <span>
+                {activeHandoffs.length
+                  ? 'Waiting on recipients'
+                  : handoffs.length
+                    ? 'All finished'
+                    : 'None shared yet'}
+              </span>
             </div>
           </Card>
           <Card className="metric-card">
@@ -204,16 +224,26 @@ export function DashboardPage() {
                 title="Nothing in progress"
               />
             )}
-            {handoffs.slice(0, 1).map((handoff) => (
-              <Link className="work-row" key={handoff.id} to="/handoffs">
+            {activeHandoffs.slice(0, 1).map((handoff) => (
+              <Link
+                className="work-row"
+                key={handoff.id}
+                params={{ id: handoff.publicToken ?? handoff.id }}
+                to="/handoffs/$id"
+              >
                 <span className="work-row__icon work-row__icon--green">
                   <Icon name="share" />
                 </span>
                 <span className="work-row__content">
                   <strong>{handoff.title}</strong>
-                  <small>Handoff · Shared {formatDate(handoff.createdAt)}</small>
+                  <small>
+                    Handoff · Updated{' '}
+                    {formatDate(handoff.updatedAt ?? handoff.createdAt)}
+                  </small>
                 </span>
-                <span className="pill">Shared</span>
+                <span className={handoffStatusPillClass(handoff.status)}>
+                  {formatHandoffStatus(handoff.status)}
+                </span>
                 <Icon name="arrow" />
               </Link>
             ))}

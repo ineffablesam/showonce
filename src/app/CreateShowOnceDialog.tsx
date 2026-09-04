@@ -18,7 +18,7 @@ const modalMotionTransition = {
 type TargetAppValue = '' | 'nexa-benefits'
 
 const TARGET_APP_LABELS = {
-  'nexa-benefits': 'Northstar Benefits Demo',
+  'nexa-benefits': 'WaitingRoom.gov Demo',
 } as const
 
 export function CreateShowOnceDialog({
@@ -306,7 +306,7 @@ export function CreateShowOnceDialog({
                                   className="size-4 shrink-0 text-emerald-700"
                                   name="northstar"
                                 />
-                                Northstar Benefits Demo
+                                WaitingRoom.gov Demo
                               </button>
                             </div>
                           </div>

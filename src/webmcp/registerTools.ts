@@ -48,6 +48,45 @@ async function audit(
   })
 }
 
+function prepareHumanApproval(context: WebMCPRegistrationContext): {
+  ok: boolean
+  reason?: string
+  summary?: {
+    planId: string
+    planName: string
+    monthlyPrice: number
+    renewalFrequency: string
+    paperless: boolean
+    dependentCount: number
+  }
+  awaitingHumanApproval?: boolean
+  approvalModalOpen?: boolean
+} {
+  const state = context.getRecipientState()
+  const plan = state.availablePlans.find(({ id }) => id === state.selectedPlanId)
+  if (!plan) {
+    return { ok: false, reason: 'plan_required' }
+  }
+  const commandResult = context.execute({ type: 'preview_renewal' })
+  if (!commandResult.ok) {
+    return { ok: false, reason: commandResult.reason }
+  }
+  context.onRequestHumanApproval?.()
+  return {
+    ok: true,
+    summary: {
+      planId: plan.id,
+      planName: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      renewalFrequency: state.preferences.renewalFrequency ?? 'annual',
+      paperless: state.preferences.paperless,
+      dependentCount: state.dependents.length,
+    },
+    awaitingHumanApproval: true,
+    approvalModalOpen: true,
+  }
+}
+
 async function invoke(
   descriptor: ShowOnceToolDescriptor,
   context: WebMCPRegistrationContext,
@@ -174,6 +213,21 @@ async function invoke(
         outcome = commandResult.ok ? 'applied' : 'refused'
         break
       }
+      case 'benefits_select_plan': {
+        const planId = stringInput(input, 'planId')
+        if (!planId) {
+          outcome = 'refused'
+          result = { ok: false, reason: 'invalid_command' }
+          break
+        }
+        const commandResult = context.execute({
+          type: 'select_plan',
+          planId,
+        })
+        result = commandResult
+        outcome = commandResult.ok ? 'applied' : 'refused'
+        break
+      }
       case 'showonce_request_helper':
         if (!context.requestHelper) {
           outcome = 'refused'
@@ -203,34 +257,11 @@ async function invoke(
           : null
         break
       }
-      case 'benefits_prepare_renewal': {
-        const state = context.getRecipientState()
-        const plan = state.availablePlans.find(
-          ({ id }) => id === state.selectedPlanId,
-        )
-        if (!plan) {
-          outcome = 'refused'
-          result = { ok: false, reason: 'plan_required' }
-          break
-        }
-        // A read-through checkpoint, not a mutation: this is as far as any
-        // agent can go. Only a human clicking "Confirm & submit" in the
-        // recipient UI can move the renewal past this point.
-        const commandResult = context.execute({ type: 'preview_renewal' })
-        result = {
-          ok: commandResult.ok,
-          reason: commandResult.ok ? undefined : commandResult.reason,
-          summary: {
-            planId: plan.id,
-            planName: plan.name,
-            monthlyPrice: plan.monthlyPrice,
-            renewalFrequency: state.preferences.renewalFrequency ?? 'annual',
-            paperless: state.preferences.paperless,
-            dependentCount: state.dependents.length,
-          },
-          awaitingHumanApproval: true,
-        }
-        outcome = commandResult.ok ? 'applied' : 'refused'
+      case 'benefits_prepare_renewal':
+      case 'showonce_request_human_approval': {
+        const prepared = prepareHumanApproval(context)
+        result = prepared
+        outcome = prepared.ok ? 'applied' : 'refused'
         break
       }
     }

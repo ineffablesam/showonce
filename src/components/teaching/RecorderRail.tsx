@@ -62,7 +62,7 @@ export function RecorderRail({
         <span className="eyebrow">Actions captured</span>
         {applied.length === 0 ? (
           <p className="recorder-rail__empty">
-            Use Northstar Benefits on the right — every meaningful choice is
+            Use WaitingRoom.gov on the right — every meaningful choice is
             captured automatically.
           </p>
         ) : (
@@ -80,7 +80,7 @@ export function RecorderRail({
         className="button button--primary recorder-rail__finish"
         disabled={finishing || !readyToFinish}
         onClick={onFinish}
-        title={readyToFinish ? 'Compile this recording' : 'Finish the renewal in Northstar Benefits first'}
+        title={readyToFinish ? 'Compile this recording' : 'Finish the renewal on WaitingRoom.gov first'}
         type="button"
       >
         <Icon name="check" />

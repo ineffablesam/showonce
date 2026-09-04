@@ -36,15 +36,6 @@ export function LandingHeader({
           <span className="landing-header__name">ShowOnce</span>
         </Link>
 
-        <div className="landing-header__links">
-          <Link className="landing-header__link" to="/guide">
-            Guide
-          </Link>
-          <Link className="landing-header__link" to="/demo">
-            Demo
-          </Link>
-        </div>
-
         <div className="landing-header__actions">
           <OpenWorkspaceTrigger
             className="button button--primary"

@@ -110,6 +110,25 @@ describe('connected ShowOnce product flow', () => {
     )
   })
 
+  it('resets the demonstrator account when a Northstar recording starts', async () => {
+    const repositories = createBrowserRepositories({
+      storage: new TestStorage(),
+      channelFactory: () => undefined,
+    })
+    const stale = createDemoAccount()
+    stale.submittedAt = 99_999
+    stale.selectedPlanId = 'gold'
+    await repositories.accounts.save(stale)
+
+    await startRecording(repositories, 'Renew annual benefits', {
+      targetApp: 'nexa-benefits',
+    })
+
+    const account = await repositories.accounts.get('samuel')
+    expect(account?.submittedAt).toBeNull()
+    expect(account?.selectedPlanId).toBeNull()
+  })
+
   it('adapts safe preferences but asks on a material Gold price difference', async () => {
     const repositories = createBrowserRepositories({
       storage: new TestStorage(),

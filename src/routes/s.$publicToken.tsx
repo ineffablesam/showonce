@@ -1,13 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { WebMCPStatus } from '../app/TopBar'
-import { AdaptationPanel } from '../components/adaptation/AdaptationPanel'
-import { ConfirmationGate } from '../components/adaptation/ConfirmationGate'
+import { RecipientApprovalModal } from '../components/adaptation/RecipientApprovalModal'
+import { BrowserFrame } from '../components/browser/BrowserFrame'
 import { NorthstarApp } from '../components/northstar/NorthstarApp'
-import type { WebMCPInvocation } from '../components/northstar/WebMCPLivePanel'
-import { WebMCPLivePanel } from '../components/northstar/WebMCPLivePanel'
 import { Card, EmptyState } from '../components/ui/Card'
 import { Icon } from '../components/ui/Icon'
 import { compareProcedureToRecipient } from '../domain/adaptation/compareProcedureToRecipient'
@@ -30,21 +27,22 @@ import type {
 import { repositories } from '../domain/repositories/appRepositories'
 import type { PublicHandoff } from '../domain/repositories/types'
 import { assertHandoffPolicyAllows } from '../domain/sharing/handoffPolicy'
-import { handoffRecipientName, possessive } from '../lib/handoffRecipient'
+import { handoffRecipientName } from '../lib/handoffRecipient'
 import { useRecipientDecisionNotification } from '../hooks/useRecipientDecisionNotification'
 import type { ShowOnceToolName } from '../webmcp/types'
 import { useWebMCP } from '../webmcp/useWebMCP'
 
 function submissionHintForPhase(
   phase: RecipientWorkflowRun['phase'],
+  recipientName: string,
 ): string {
   switch (phase) {
     case 'confirmation':
-      return 'Awaiting your approval in the ShowOnce panel →'
+      return 'Review the approval popup to submit your renewal.'
     case 'complete':
-      return 'Submitted and confirmed.'
+      return 'Your renewal is submitted.'
     default:
-      return 'Choose a plan in the ShowOnce panel to continue →'
+      return `${recipientName}, your assistant can help finish this on WaitingRoom.gov.`
   }
 }
 
@@ -63,21 +61,11 @@ function RecipientRoute() {
   const { publicToken } = Route.useParams()
   const { preview, scenario } = Route.useSearch()
   const queryClient = useQueryClient()
-  const [choosing, setChoosing] = useState(false)
+  const [approvalOpen, setApprovalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [askingHelper, setAskingHelper] = useState(false)
   const [helperError, setHelperError] = useState<string>()
   const [submissionError, setSubmissionError] = useState<string>()
   const [addressConfirmed, setAddressConfirmed] = useState(true)
-  const [lastInvocation, setLastInvocation] = useState<WebMCPInvocation | null>(
-    null,
-  )
-  const onInvocation = useCallback(
-    (tool: string, source: 'webmcp' | 'human' = 'webmcp') => {
-      setLastInvocation({ tool, at: Date.now(), source })
-    },
-    [],
-  )
   const accountId =
     scenario === 'normal' ? 'recipient-normal' : 'recipient-unavailable'
 
@@ -97,7 +85,7 @@ function RecipientRoute() {
       (await repositories.accounts.get(accountId)) ??
       createRecipientAccount(scenario),
   })
-  const workflow = useQuery({
+  const workflow = useQuery<RecipientWorkflowRun>({
     queryKey: ['recipient-run', publicToken, scenario, preview],
     queryFn: () =>
       preview
@@ -152,7 +140,6 @@ function RecipientRoute() {
     if (!workflow.data) throw new Error('Workflow unavailable')
     if (!handoff.data?.policy) throw new Error('Handoff policy unavailable')
     setHelperError(undefined)
-    setAskingHelper(true)
     try {
       assertHandoffPolicyAllows(handoff.data.policy, 'request_helper')
       const helpDetail: 'plan_unavailable' | 'material_price_change' =
@@ -195,8 +182,6 @@ function RecipientRoute() {
           : 'Could not send a request to the sender.'
       setHelperError(message)
       throw error
-    } finally {
-      setAskingHelper(false)
     }
   }, [
     handoff.data?.policy,
@@ -207,6 +192,24 @@ function RecipientRoute() {
     workflow.data,
   ])
 
+  const openApproval = useCallback(
+    async (planId?: string) => {
+      if (preview || !workflow.data || !account.data) return
+      const selectedPlanId = planId ?? account.data.selectedPlanId
+      if (!selectedPlanId) return
+      await repositories.handoffs
+        .transitionByPublicToken(publicToken, 'waiting_confirmation')
+        .catch(() => undefined)
+      setRun({
+        phase: 'confirmation',
+        selectedPlanId,
+        lastOutcome: 'human',
+      })
+      setApprovalOpen(true)
+    },
+    [account.data, preview, publicToken, setRun, workflow.data],
+  )
+
   const webmcp = useRecipientWebMCP({
     publicToken,
     handoff: handoff.data ?? null,
@@ -216,7 +219,9 @@ function RecipientRoute() {
     onAccount: setAccount,
     onRun: setRun,
     onRequestHelper: askHelper,
-    onInvocation,
+    onRequestHumanApproval: () => {
+      void openApproval()
+    },
   })
 
   const runNorthstarCommand = useCallback(
@@ -232,9 +237,12 @@ function RecipientRoute() {
         },
       )
       setAccount(result.state)
+      if (result.ok && command.type === 'select_plan') {
+        await openApproval(command.planId)
+      }
       return result
     },
-    [account.data, handoff.data?.policy, publicToken, setAccount],
+    [account.data, handoff.data?.policy, openApproval, publicToken, setAccount],
   )
 
   const procedure = handoff.data?.procedure
@@ -248,6 +256,10 @@ function RecipientRoute() {
       : null
   const phase = workflow.data?.phase ?? 'explain'
   const recipientName = handoffRecipientName(handoff.data?.recipient)
+  const selectedPlan =
+    account.data?.availablePlans.find(
+      (plan) => plan.id === (account.data?.selectedPlanId ?? workflow.data?.selectedPlanId),
+    ) ?? null
 
   useRecipientDecisionNotification(
     decision.data,
@@ -290,35 +302,66 @@ function RecipientRoute() {
     )
   }
 
-  const choosePlan = async (
-    planId: string,
-    source: 'human' | 'helper' = 'human',
-  ) => {
-    if (preview) return
-    if (!account.data || !workflow.data) return
-    const result = await applyRecipientCommand(
-      repositories,
-      account.data,
-      {
-        type: 'select_plan',
-        planId,
-      },
-      { handoffToken: publicToken, policy: handoff.data?.policy },
-    )
-    if (!result.ok) return
-    setAccount(result.state)
-    setChoosing(false)
-    setRun({
-      phase: 'confirmation',
-      selectedPlanId: planId,
-      lastOutcome: source,
-    })
-  }
+  const appliedDecisionRef = useRef<string | null>(null)
 
-  // The single atomic human action: check the attestation box, click once,
-  // and — in one call — a HUMAN `recipient_attestation` event is recorded
-  // and `submitRenewal()` runs through the exact same domain command layer
-  // used everywhere else. No second WebMCP turn is required or possible.
+  const choosePlan = useCallback(
+    async (planId: string, source: 'human' | 'helper' = 'human') => {
+      if (preview) return
+      if (!account.data || !workflow.data) return
+      const result = await applyRecipientCommand(
+        repositories,
+        account.data,
+        {
+          type: 'select_plan',
+          planId,
+        },
+        { handoffToken: publicToken, policy: handoff.data?.policy },
+      )
+      if (!result.ok) return
+      setAccount(result.state)
+      setRun({
+        phase: 'confirmation',
+        selectedPlanId: planId,
+        lastOutcome: source,
+      })
+      await openApproval(planId)
+    },
+    [
+      account.data,
+      handoff.data?.policy,
+      openApproval,
+      preview,
+      publicToken,
+      setAccount,
+      setRun,
+      workflow.data,
+    ],
+  )
+
+  const continueFromDecision = useCallback(async () => {
+    if (preview) return
+    if (
+      decision.data?.outcome === 'recommend_plan' &&
+      decision.data.recommendedPlanId
+    ) {
+      await choosePlan(decision.data.recommendedPlanId, 'helper')
+    } else if (decision.data?.outcome === 'let_recipient_decide') {
+      setRun({ phase: 'adapted', lastOutcome: 'human_choice_requested' })
+    }
+  }, [choosePlan, decision.data, preview, setRun])
+
+  useEffect(() => {
+    if (preview || workflow.data?.phase !== 'awaiting_helper' || !decision.data) {
+      return
+    }
+    if (appliedDecisionRef.current === decision.data.id) return
+    appliedDecisionRef.current = decision.data.id
+    void continueFromDecision()
+  }, [continueFromDecision, decision.data, preview, workflow.data?.phase])
+
+  // Registers WebMCP tools for this page.
+  void webmcp
+
   const attestAndSubmit = async () => {
     if (preview) return
     if (
@@ -335,14 +378,13 @@ function RecipientRoute() {
         workflow.data,
         { handoffToken: publicToken },
       )
-      onInvocation('recipient_attestation', 'human')
       if (result.ok) {
-        onInvocation('submit_renewal', 'human')
         queryClient.setQueryData(['account', accountId], result.account)
         queryClient.setQueryData(
           ['recipient-run', publicToken, scenario, preview],
           result.run,
         )
+        setApprovalOpen(false)
       } else {
         queryClient.setQueryData(
           ['recipient-run', publicToken, scenario, preview],
@@ -357,50 +399,49 @@ function RecipientRoute() {
     }
   }
 
-  const continueFromDecision = async () => {
-    if (preview) return
-    if (
-      decision.data?.outcome === 'recommend_plan' &&
-      decision.data.recommendedPlanId
-    ) {
-      await choosePlan(decision.data.recommendedPlanId, 'helper')
-    } else if (decision.data?.outcome === 'let_recipient_decide') {
-      setChoosing(true)
-      setRun({ phase: 'adapted', lastOutcome: 'human_choice_requested' })
-    }
-  }
-
   const loading = handoff.isPending || account.isPending || workflow.isPending
   if (loading) {
     return <div aria-label="Loading recipient handoff" className="page-loading" />
   }
 
   return (
-    <div className="recipient-page">
-      <header className="recipient-header">
-        <Link className="brand" to="/">
-          <span className="brand__mark"><Icon name="spark" /></span> ShowOnce
+    <div className="recipient-page recipient-page--focused">
+      <header className="recipient-header recipient-header--minimal">
+        <Link className="recipient-header__brand" to="/">
+          <img
+            alt="ShowOnce"
+            className="recipient-header__logo"
+            height={26}
+            src="/logo.svg"
+            width={34}
+          />
         </Link>
-        {preview ? <span className="pill">DEMO PREVIEW</span> : null}
-        {preview ? (
-          <span
-            aria-label="WebMCP tools are paused in read-only preview. Start the live adaptation to register them."
-            className="webmcp-status webmcp-status--unavailable"
-            role="status"
-          >
-            <span className="status-dot" />
-            WebMCP paused in preview
-          </span>
-        ) : (
-          <WebMCPStatus state={webmcp} />
-        )}
-      </header>
-      <main className="recipient-main">
-        {submissionError ? (
-          <Card>
-            <p role="alert">{submissionError}</p>
-          </Card>
+        {handoff.data?.title ? (
+          <span className="recipient-header__task-chip">{handoff.data.title}</span>
         ) : null}
+        <div className="recipient-header__end">
+          {preview ? <span className="pill">Preview</span> : null}
+        </div>
+      </header>
+
+      {submissionError ? (
+        <div className="recipient-banner recipient-banner--error" role="alert">
+          {submissionError}
+        </div>
+      ) : null}
+      {helperError ? (
+        <div className="recipient-banner recipient-banner--error" role="alert">
+          {helperError}
+        </div>
+      ) : null}
+
+      <main
+        className={
+          phase === 'explain'
+            ? 'recipient-main'
+            : 'recipient-main recipient-main--northstar'
+        }
+      >
         {!handoff.data || !procedure || !account.data || !adaptation ? (
           <Card>
             <EmptyState
@@ -423,7 +464,7 @@ function RecipientRoute() {
             <h1>{recipientName}, you have a shared task</h1>
             <p>{handoff.data.title}</p>
             <span className="recipient-intro__app">
-              <Icon name="lock" /> Northstar Benefits
+              <Icon name="lock" /> WaitingRoom.gov
             </span>
             {preview ? (
               <Link
@@ -432,7 +473,7 @@ function RecipientRoute() {
                 search={{ preview: false, scenario }}
                 to="/s/$publicToken"
               >
-                Start live adaptation <Icon name="arrow" />
+                Start live task <Icon name="arrow" />
               </Link>
             ) : (
               <button
@@ -440,151 +481,38 @@ function RecipientRoute() {
                 onClick={() => void adapt()}
                 type="button"
               >
-                Open task <Icon name="arrow" />
+                Open WaitingRoom.gov <Icon name="arrow" />
               </button>
             )}
           </div>
         ) : (
-          <div className="northstar-shell">
-            <div className="northstar-shell__frame">
-              <NorthstarApp
-                account={account.data}
-                addressConfirmed={addressConfirmed}
-                memberName={recipientName}
-                mode="recipient"
-                onAddressConfirm={() => setAddressConfirmed(true)}
-                runCommand={runNorthstarCommand}
-                submissionHint={submissionHintForPhase(phase)}
-              />
-            </div>
-            <aside className="northstar-shell__panel">
-              <WebMCPLivePanel
-                lastInvocation={lastInvocation}
-                waitingOnHuman={phase === 'confirmation'}
-                webmcp={webmcp}
-              />
-              {phase === 'adapted' ||
-              phase === 'awaiting_helper' ||
-              phase === 'helper_resolved' ? (
-                <>
-                  <AdaptationPanel
-                    askingHelper={askingHelper}
-                    helperError={helperError}
-                    onAsk={() => void askHelper()}
-                    onChoose={() => {
-                      if (scenario === 'normal') void choosePlan('gold')
-                      else setChoosing(true)
-                    }}
-                    recipient={account.data}
-                    recipientName={recipientName}
-                    result={adaptation}
-                    scenario={scenario}
-                  />
-                  {choosing ? (
-                    <Card className="plan-choices">
-                      {account.data.availablePlans.map((plan) => (
-                        <button
-                          key={plan.id}
-                          onClick={() => void choosePlan(plan.id)}
-                          type="button"
-                        >
-                          {plan.name} · ${plan.monthlyPrice}/month
-                        </button>
-                      ))}
-                    </Card>
-                  ) : null}
-                  {helperToken ? (
-                    <Card className="helper-request-card">
-                      <h3>
-                        {decision.data ? 'Decision received' : 'Waiting for helper'}
-                      </h3>
-                      <Link
-                        params={{ publicToken: helperToken }}
-                        to="/help/$publicToken"
-                      >
-                        Open minimum-information request
-                      </Link>
-                      {decision.data ? (
-                        <button
-                          className="button button--primary"
-                          onClick={() => void continueFromDecision()}
-                          type="button"
-                        >
-                          Continue
-                        </button>
-                      ) : null}
-                    </Card>
-                  ) : null}
-                </>
-              ) : phase === 'confirmation' ? (
-                <ConfirmationGate
-                  account={account.data}
-                  differences={adaptation.differences}
-                  monthlyPrice={
-                    account.data.availablePlans.find(
-                      (plan) => plan.id === account.data.selectedPlanId,
-                    )?.monthlyPrice ?? 0
-                  }
-                  onConfirmAndSubmit={attestAndSubmit}
-                  planName={
-                    account.data.availablePlans.find(
-                      (plan) => plan.id === account.data.selectedPlanId,
-                    )?.name ?? 'Selected plan'
-                  }
-                  recipientName={recipientName}
-                  submitting={submitting}
-                />
-              ) : (
-                <Card className="completion-card completion-card--compact">
-                  <span className="completion-card__mark" data-state="in">
-                    <Icon name="check" />
-                  </span>
-                  <span className="eyebrow">Done</span>
-                  <h1>{possessive(recipientName)} plan is renewed.</h1>
-                  <p>
-                    {possessive(recipientName)} benefits are submitted. The handoff
-                    completed with recipient confirmation.
-                  </p>
-                  <div className="adaptation-facts">
-                    <Card>
-                      <strong>Original actions</strong>
-                      <span>{procedure.steps.length}</span>
-                    </Card>
-                    <Card>
-                      <strong>Reused</strong>
-                      <span>{adaptation.matches.length}</span>
-                    </Card>
-                    <Card>
-                      <strong>Adapted</strong>
-                      <span>{adaptation.safeActions.length}</span>
-                    </Card>
-                    <Card>
-                      <strong>Skipped</strong>
-                      <span>{adaptation.skippedActions.length}</span>
-                    </Card>
-                    <Card>
-                      <strong>Decision count</strong>
-                      <span>{adaptation.needsJudgment ? 1 : 0}</span>
-                    </Card>
-                    <Card>
-                      <strong>Credentials shared</strong>
-                      <span>0</span>
-                    </Card>
-                  </div>
-                  <div className="decision-card__actions">
-                    <Link className="button button--primary" to="/activity">
-                      View activity
-                    </Link>
-                    <Link className="button button--ghost" to="/app">
-                      Back to dashboard
-                    </Link>
-                  </div>
-                </Card>
-              )}
-            </aside>
-          </div>
+          <BrowserFrame url="waitingroom.gov/benefits/enroll">
+            <NorthstarApp
+              account={account.data}
+              addressConfirmed={addressConfirmed}
+              memberName={recipientName}
+              mode="recipient"
+              onAddressConfirm={() => setAddressConfirmed(true)}
+              runCommand={runNorthstarCommand}
+              submissionHint={submissionHintForPhase(phase, recipientName)}
+            />
+          </BrowserFrame>
         )}
       </main>
+
+      {account.data && adaptation && recipientName && selectedPlan ? (
+        <RecipientApprovalModal
+          account={account.data}
+          differences={adaptation.differences}
+          monthlyPrice={selectedPlan.monthlyPrice}
+          onClose={() => setApprovalOpen(false)}
+          onConfirmAndSubmit={attestAndSubmit}
+          open={approvalOpen}
+          planName={selectedPlan.name}
+          recipientName={recipientName}
+          submitting={submitting}
+        />
+      ) : null}
     </div>
   )
 }
@@ -598,7 +526,7 @@ function useRecipientWebMCP({
   onAccount,
   onRun,
   onRequestHelper,
-  onInvocation,
+  onRequestHumanApproval,
 }: {
   publicToken: string
   handoff: PublicHandoff | null
@@ -608,7 +536,7 @@ function useRecipientWebMCP({
   onAccount: (account: AccountState) => void
   onRun: (update: Partial<RecipientWorkflowRun>) => void
   onRequestHelper: () => Promise<ReturnType<typeof createHelpRequest> extends Promise<infer T> ? T : never>
-  onInvocation: (tool: string) => void
+  onRequestHumanApproval: () => void
 }) {
   const accountRef = useRef(account)
   const handoffRef = useRef(handoff)
@@ -638,9 +566,6 @@ function useRecipientWebMCP({
       if (!startedRef.current) {
         void markRunning()
       }
-      // No WebMCP tool ever issues `submit_renewal` — that only happens
-      // inside the human-only `attestAndSubmitRenewal` handler — so every
-      // command executed here is a safe, reversible preparation step.
       const result = executeCommand(
         {
           state: current,
@@ -695,9 +620,9 @@ function useRecipientWebMCP({
       getActiveHandoff: () => activeHandoff,
       requestHelper: onRequestHelper,
       getActiveHelpRequestId: () => runRef.current?.helperRequestId,
+      onRequestHumanApproval,
       onToolStart: markRunning,
       onToolResult: (name: ShowOnceToolName, result: unknown) => {
-        onInvocation(name)
         if (name === 'showonce_compare_to_handoff') {
           onRun({ phase: 'adapted' })
           if (
@@ -713,9 +638,23 @@ function useRecipientWebMCP({
             )
           }
         }
-        // The agent's last possible step: once it has prepared a valid
-        // renewal, the run is (already) in the AWAITING HUMAN APPROVAL
-        // phase and there is nothing left for any WebMCP tool to do.
+        if (
+          name === 'benefits_select_plan' &&
+          typeof result === 'object' &&
+          result !== null &&
+          'ok' in result &&
+          result.ok === true &&
+          'state' in result &&
+          typeof result.state === 'object' &&
+          result.state !== null &&
+          'selectedPlanId' in result.state &&
+          typeof result.state.selectedPlanId === 'string'
+        ) {
+          onRun({
+            phase: 'confirmation',
+            selectedPlanId: result.state.selectedPlanId,
+          })
+        }
       },
       now: Date.now,
       createId: () => crypto.randomUUID(),
@@ -724,7 +663,7 @@ function useRecipientWebMCP({
       activeHandoff,
       execute,
       markRunning,
-      onInvocation,
+      onRequestHumanApproval,
       onRequestHelper,
       onRun,
       preview,

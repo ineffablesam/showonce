@@ -8,6 +8,7 @@ import { RecorderRail } from '../components/teaching/RecorderRail'
 import { Card, EmptyState } from '../components/ui/Card'
 import {
   applyRecordedCommand,
+  createDemoAccount,
   finishRecording,
 } from '../domain/integration/productFlow'
 import type { Command, Confirmation } from '../domain/model'
@@ -99,6 +100,35 @@ function BenefitsRoute() {
     }
   }, [navigate, recordingQuery.data?.id, recordingQuery.data?.status])
 
+  useEffect(() => {
+    if (
+      !recordingId ||
+      !recordingQuery.data ||
+      recordingQuery.data.status !== 'capturing' ||
+      !accountQuery.data
+    ) {
+      return
+    }
+
+    const staleCompletedAccount =
+      accountQuery.data.submittedAt !== null &&
+      recordingQuery.data.events.length === 0
+
+    if (!staleCompletedAccount) return
+
+    void repositories.accounts
+      .save(createDemoAccount())
+      .then(() =>
+        queryClient.invalidateQueries({ queryKey: ['account', accountId] }),
+      )
+  }, [
+    accountId,
+    accountQuery.data,
+    queryClient,
+    recordingId,
+    recordingQuery.data,
+  ])
+
   const reset = async () => {
     await resetDemo(repositories)
     await queryClient.invalidateQueries()
@@ -125,7 +155,7 @@ function BenefitsRoute() {
       <div className="teaching-empty">
         <Card>
           <EmptyState
-            detail="Start a New ShowOnce from the workspace to open Northstar Benefits and begin recording."
+            detail="Start a New ShowOnce from the workspace to open WaitingRoom.gov and begin recording."
             icon="record"
             iconTone="ink"
             title="No active recording"
@@ -150,7 +180,7 @@ function BenefitsRoute() {
         startedAt={recordingQuery.data.createdAt}
       />
       <div className="teaching-layout__frame">
-        <BrowserFrame url="benefits.northstar.demo">
+        <BrowserFrame url="waitingroom.gov/benefits/enroll">
           <NorthstarApp
             account={accountQuery.data}
             addressConfirmed={addressConfirmed}

@@ -20,6 +20,19 @@ export type NorthstarScreen =
 
 export type NorthstarMode = 'demonstrator' | 'recipient'
 
+const PORTAL_NAME = 'WaitingRoom.gov'
+const PORTAL_TITLE = 'WaitingRoom.gov Benefits Enrollment Portal'
+const PORTAL_DEPT = 'Department of Forms, Queues & Dental Coverage'
+const GOV_MARQUEE = (
+  <>
+    Important Notice for members regarding collection of outstanding Form 17-B fees.{' '}
+    <em>Click here</em> for details.&nbsp;&nbsp;&nbsp; Dental renewal online payments now
+    accepted through member portal. <em>Click here</em> to proceed.&nbsp;&nbsp;&nbsp; Avail
+    NACH facility for automatic premium deduction on the 7th, 12th, or 17th.{' '}
+    <em>Click here</em> for details.&nbsp;&nbsp;&nbsp;
+  </>
+)
+
 const NAV_ITEMS: Array<{ screen: NorthstarScreen; label: string; icon: Parameters<typeof Icon>[0]['name'] }> = [
   { screen: 'overview', label: 'Overview', icon: 'grid' },
   { screen: 'coverage', label: 'Coverage', icon: 'clipboard' },
@@ -35,6 +48,76 @@ function resolvePlan(account: AccountState): Plan | undefined {
     account.availablePlans.find((plan) => plan.id === 'gold')?.id ??
     account.availablePlans[0]?.id
   return account.availablePlans.find((plan) => plan.id === id)
+}
+
+function screenLabel(screen: NorthstarScreen): string {
+  if (screen.startsWith('renewal')) return 'Dental Renewal'
+  const labels: Record<NorthstarScreen, string> = {
+    overview: 'Member Dashboard',
+    coverage: 'Coverage Details',
+    dental: 'Dental Scheme',
+    'renewal-1': 'Dental Renewal',
+    'renewal-2': 'Dental Renewal',
+    'renewal-3': 'Dental Renewal',
+    'renewal-4': 'Dental Renewal',
+    'renewal-done': 'Renewal Confirmation',
+    dependents: 'Dependents',
+    claims: 'Claims Status',
+    documents: 'Documents',
+    profile: 'Profile',
+  }
+  return labels[screen]
+}
+
+function GovAdStrip() {
+  return (
+    <aside aria-label="Government announcements" className="northstar-app__ads">
+      <div className="northstar-app__marquee" aria-label="Latest notices">
+        <div className="northstar-app__marquee-track">
+          <span className="northstar-app__marquee-chunk">
+            <img
+              alt="New"
+              className="northstar-app__marquee-new"
+              src="/banners/new.gif"
+            />
+            <span className="northstar-app__marquee-text">{GOV_MARQUEE}</span>
+          </span>
+          <span className="northstar-app__marquee-chunk">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="northstar-app__marquee-new"
+              src="/banners/new.gif"
+            />
+            <span className="northstar-app__marquee-text">{GOV_MARQUEE}</span>
+          </span>
+        </div>
+      </div>
+      <div className="northstar-app__ad-banners">
+        <div className="northstar-app__ad-banner-cell">
+          <img
+            alt="Digital Waiting Room Initiative 2026 — Queue Less, Form More"
+            className="northstar-app__ad-banner"
+            src="/banners/gov-banner-waiting-room-v2.png"
+          />
+        </div>
+        <div className="northstar-app__ad-banner-cell northstar-app__ad-banner-cell--tablet">
+          <img
+            alt="File Form 17-B before 31 December 2026 or lose dental coverage"
+            className="northstar-app__ad-banner"
+            src="/banners/gov-banner-form-17b-v3.png"
+          />
+        </div>
+        <div className="northstar-app__ad-banner-cell northstar-app__ad-banner-cell--desktop">
+          <img
+            alt="Hotline 1-800-WAIT-4-IT — NACH auto-debit on the 7th, 12th, or 17th"
+            className="northstar-app__ad-banner"
+            src="/banners/gov-banner-hotline-v3.png"
+          />
+        </div>
+      </div>
+    </aside>
+  )
 }
 
 export function NorthstarApp({
@@ -89,34 +172,62 @@ export function NorthstarApp({
 
   return (
     <div className="northstar-app">
-      <header className="northstar-app__header">
-        <span className="northstar-app__brand">
-          <span className="northstar-app__mark">N</span>
-          Northstar Benefits
+      <div className="northstar-app__topbar">
+        <button className="northstar-app__topbar-link" type="button">
+          Login
+        </button>
+        <span className="northstar-app__topbar-sep" aria-hidden="true">
+          |
         </span>
-        <span className="northstar-app__member">Signed in as {memberName}</span>
+        <button className="northstar-app__topbar-link" type="button">
+          Help
+        </button>
+        <span className="northstar-app__topbar-end">
+          Signed in as <strong>{memberName}</strong>
+        </span>
+      </div>
+
+      <header className="northstar-app__banner">
+        <div className="northstar-app__titles">
+          <span className="northstar-app__brand">{PORTAL_TITLE}</span>
+          <span className="northstar-app__dept">{PORTAL_DEPT}</span>
+        </div>
       </header>
-      <div className="northstar-app__layout">
-        <nav aria-label="Northstar Benefits" className="northstar-app__nav">
-          {NAV_ITEMS.map((item) => (
-            <button
-              className={
-                screen === item.screen ||
-                (item.screen === 'coverage' && screen === 'dental') ||
-                (item.screen === 'overview' && screen.startsWith('renewal'))
-                  ? 'northstar-app__nav-active'
-                  : ''
-              }
-              key={item.screen}
-              onClick={() => setScreen(item.screen)}
-              type="button"
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <main className="northstar-app__main">
+
+      <GovAdStrip />
+
+      <nav aria-label="Portal navigation" className="northstar-app__nav">
+        {NAV_ITEMS.map((item) => (
+          <button
+            className={
+              screen === item.screen ||
+              (item.screen === 'coverage' && screen === 'dental') ||
+              (item.screen === 'overview' && screen.startsWith('renewal'))
+                ? 'northstar-app__nav-active'
+                : ''
+            }
+            key={item.screen}
+            onClick={() => setScreen(item.screen)}
+            type="button"
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <p className="northstar-app__last-updated">
+        Website Last Updated on: 03-Sep-2026
+      </p>
+
+      <div aria-label="Breadcrumb" className="northstar-app__breadcrumb">
+        <span>Home</span>
+        <span aria-hidden="true">&gt;&gt;</span>
+        <span>Member Services</span>
+        <span aria-hidden="true">&gt;&gt;</span>
+        <strong>{screenLabel(screen)}</strong>
+      </div>
+
+      <main className="northstar-app__main" id="northstar-main">
           {error ? (
             <p className="northstar-app__error" role="alert">
               {error}
@@ -208,8 +319,37 @@ export function NorthstarApp({
           ) : (
             <ProfileScreen account={account} memberName={memberName} />
           )}
-        </main>
-      </div>
+      </main>
+
+      <footer className="northstar-app__footer">
+        <div className="northstar-app__footer-links">
+          <span>CONTACT US</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>FAQ</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>RTI</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>ABOUT US</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>SITEMAP</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>GRIEVANCE REDRESSAL</span>
+        </div>
+        <div className="northstar-app__footer-table">
+          <span>Powered by ShowOnce Demo Engine</span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>
+            Copyright © 2026 {PORTAL_NAME}. All Rights Reserved.
+          </span>
+          <span className="northstar-app__footer-sep">|</span>
+          <span>Site Best Viewed in 1024 x 768 resolution</span>
+        </div>
+        <p className="northstar-app__footer-disclaimer">
+          The Site is best viewed in 1024 X 768 resolution and compatible browsers
+          IE11+, Mozilla Firefox, Google Chrome, Opera, Safari. Some features may
+          not work correctly in older versions of browsers.
+        </p>
+      </footer>
     </div>
   )
 }
@@ -253,9 +393,9 @@ function OverviewScreen({
   return (
     <div className="northstar-screen">
       <div className="northstar-screen__heading">
-        <span className="eyebrow">2027 enrollment</span>
+        <span className="northstar-section-label">2027 enrollment period</span>
         <h1>Welcome, {memberName}</h1>
-        <p>Here is everything active on this account right now.</p>
+        <p>Member dashboard — active coverage and pending actions.</p>
       </div>
       <div className="coverage-cards">
         <div className="coverage-card">
@@ -293,8 +433,8 @@ function OverviewScreen({
       </div>
       <div className="upcoming-card">
         <div>
-          <span className="eyebrow">Upcoming</span>
-          <strong>Dental renewal due</strong>
+          <span className="northstar-section-label">Action required</span>
+          <strong>Dental renewal due — open enrollment 2027</strong>
         </div>
         <button
           className="button button--primary"
@@ -356,7 +496,7 @@ function DentalDetailScreen({
   return (
     <div className="northstar-screen">
       <div className="northstar-screen__heading">
-        <span className="eyebrow">Dental coverage</span>
+        <span className="northstar-section-label">Dental coverage</span>
         <h1>{plan?.name ?? 'Dental'} Dental</h1>
       </div>
       <div className="detail-facts">
@@ -408,7 +548,9 @@ function RenewalStep1({
         <li>Review</li>
       </ol>
       <div className="northstar-screen__heading">
-        <span className="eyebrow">Renew {plan?.name ?? 'coverage'}</span>
+        <span className="northstar-section-label">
+          Renew {plan?.name ?? 'coverage'}
+        </span>
         <h1>Renewal frequency</h1>
         <p>Current plan: {plan?.name ?? '—'} Dental</p>
       </div>
@@ -599,7 +741,7 @@ function RenewalReview({
         </button>
       ) : (
         <p className="northstar-app__hint">
-          {submissionHint ?? 'Final submission needs your confirmation in the ShowOnce panel →'}
+          {submissionHint ?? 'Your assistant will open an approval popup when ready.'}
         </p>
       )}
     </div>
@@ -612,10 +754,13 @@ function RenewalDoneScreen({ plan, onBack }: { plan: Plan | undefined; onBack: (
       <span className="renewal-done__mark" data-state="in">
         <Icon name="check" />
       </span>
-      <h1>Coverage renewed.</h1>
-      <p>{plan?.name ?? 'Your plan'} Dental is renewed for the year ahead.</p>
+      <h1>Application submitted successfully</h1>
+      <p>
+        Reference generated. {plan?.name ?? 'Your plan'} Dental renewal for the
+        2027 plan year has been recorded.
+      </p>
       <button className="button button--ghost" onClick={onBack} type="button">
-        Back to Overview
+        Return to dashboard
       </button>
     </div>
   )

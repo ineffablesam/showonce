@@ -401,9 +401,11 @@ export function validateActivity(value: ActivityEvent): ActivityEvent {
     'benefits_set_renewal_period',
     'benefits_set_paperless',
     'benefits_preview_renewal',
+    'benefits_select_plan',
     'showonce_request_helper',
     'showonce_get_helper_decision',
     'benefits_prepare_renewal',
+    'showonce_request_human_approval',
   ]
   if (
     !['command', 'webmcp_invocation'].includes(String(record.kind)) ||

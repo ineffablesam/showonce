@@ -94,6 +94,9 @@ export async function startRecording(
     ...(runtime.targetApp ? { targetApp: runtime.targetApp } : {}),
   }
   await repositories.recordings.save(recording)
+  if (runtime.targetApp === 'nexa-benefits') {
+    await repositories.accounts.save(createDemoAccount())
+  }
   return recording
 }
 

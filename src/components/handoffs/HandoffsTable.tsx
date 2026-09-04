@@ -44,7 +44,7 @@ function buildColumns(
         /benefits|renewal/iu.test(
           row.original.procedure?.title ?? row.original.title,
         )
-          ? 'Northstar Benefits'
+          ? 'WaitingRoom.gov'
           : '—',
     },
     {

@@ -23,9 +23,11 @@ export type ShowOnceToolName =
   | 'benefits_set_renewal_period'
   | 'benefits_set_paperless'
   | 'benefits_preview_renewal'
+  | 'benefits_select_plan'
   | 'showonce_request_helper'
   | 'showonce_get_helper_decision'
   | 'benefits_prepare_renewal'
+  | 'showonce_request_human_approval'
 
 export interface ShowOnceToolDescriptor
   extends Omit<WebMCP.ModelContextTool, 'execute'> {
@@ -79,6 +81,7 @@ export interface WebMCPRegistrationContext {
   getActiveHandoff?: () => PublicHandoff | Handoff | null
   requestHelper?: () => Promise<HelpRequest>
   getActiveHelpRequestId?: () => string | undefined
+  onRequestHumanApproval?: () => void
   onToolStart?: (toolName: ShowOnceToolName) => void | Promise<void>
   onToolResult?: (toolName: ShowOnceToolName, result: unknown) => void
 }

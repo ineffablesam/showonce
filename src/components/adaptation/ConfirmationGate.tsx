@@ -58,6 +58,7 @@ export function ConfirmationGate({
   submitting,
   onConfirmAndSubmit,
   recipientName,
+  variant = 'panel',
 }: {
   account: AccountState
   planName: string
@@ -66,18 +67,24 @@ export function ConfirmationGate({
   submitting: boolean
   onConfirmAndSubmit: () => Promise<void>
   recipientName: string
+  variant?: 'panel' | 'modal'
 }) {
   const [attested, setAttested] = useState(false)
   const renewalFrequency = account.preferences.renewalFrequency ?? 'annual'
+  const Wrapper = variant === 'modal' ? 'div' : Card
+  const wrapperClass =
+    variant === 'modal' ? 'confirmation-gate confirmation-gate--modal' : 'confirmation-gate'
 
   return (
-    <Card className="confirmation-gate">
+    <Wrapper className={wrapperClass}>
       <span className="confirmation-gate__icon" data-state="in">
         <Icon name="check" />
       </span>
       <div>
-        <span className="eyebrow">Awaiting human approval</span>
-        <h2>Ready to submit {recipientName}&rsquo;s renewal</h2>
+        <span className="eyebrow">ShowOnce approval</span>
+        <h2 id="recipient-approval-title">
+          Ready to submit {recipientName}&rsquo;s renewal
+        </h2>
 
         <dl className="confirmation-gate__summary">
           <div>
@@ -129,8 +136,8 @@ export function ConfirmationGate({
           I am {recipientName} and I approve this renewal.
         </label>
         <p className="confirmation-gate__hint">
-          An agent can prepare everything above, but only you can check this
-          box. WebMCP tools cannot perform this step.
+          Your assistant prepared this renewal. Only you can approve and submit
+          it.
         </p>
 
         <button
@@ -142,6 +149,6 @@ export function ConfirmationGate({
           {submitting ? 'Submitting…' : 'Confirm & submit'}
         </button>
       </div>
-    </Card>
+    </Wrapper>
   )
 }

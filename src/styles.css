@@ -1714,6 +1714,31 @@ input[type='checkbox']:focus-visible {
   margin-bottom: 0;
 }
 
+.dialog--approval {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.dialog--approval::backdrop {
+  background: rgb(15 18 24 / 52%);
+}
+
+.confirmation-gate--modal {
+  max-width: none;
+  margin: 0;
+  padding: 28px 28px 24px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgb(15 18 24 / 22%);
+  text-align: left;
+}
+
+.confirmation-gate--modal .confirmation-gate__icon {
+  margin-bottom: 12px;
+}
+
 .row-delete-button {
   display: inline-flex;
   align-items: center;
@@ -2650,6 +2675,14 @@ input[type='checkbox']:focus-visible {
     #f8f8f4;
 }
 
+.recipient-page--focused {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  flex-direction: column;
+  background: #fff;
+}
+
 .recipient-header {
   display: flex;
   max-width: 1120px;
@@ -2660,10 +2693,124 @@ input[type='checkbox']:focus-visible {
   padding: 0 26px;
 }
 
+.recipient-header--minimal {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 56px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(20 30 50 / 8%);
+  margin: 0;
+  padding: 0 18px;
+  background: #fff;
+}
+
+.recipient-header__brand {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.recipient-header__logo {
+  display: block;
+  width: auto;
+  height: 24px;
+  filter: brightness(0) saturate(100%);
+  opacity: 0.58;
+}
+
+.recipient-header__task-chip {
+  position: absolute;
+  left: 50%;
+  max-width: min(460px, calc(100vw - 140px));
+  overflow: hidden;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ececea;
+  color: #5f6259;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.recipient-header__end {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 34px;
+  justify-content: flex-end;
+}
+
+.recipient-header__task {
+  overflow: hidden;
+  flex: 1;
+  color: #6f7368;
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipient-banner {
+  padding: 12px 24px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.recipient-banner--error {
+  background: #fff1f0;
+  color: #9b1c1c;
+}
+
 .recipient-main {
   max-width: 920px;
   margin: 0 auto;
   padding: 68px 24px 100px;
+}
+
+.recipient-main.recipient-main--northstar {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+}
+
+.recipient-main--northstar .browser-frame {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 56px);
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.recipient-main--northstar .browser-frame__bar {
+  border-radius: 0;
+}
+
+.recipient-main--northstar .browser-frame__viewport {
+  flex: 1;
+  overflow: auto;
+}
+
+.recipient-main--northstar .northstar-app {
+  min-height: 100%;
 }
 
 .recipient-intro {
@@ -3415,232 +3562,516 @@ input[type='checkbox']:focus-visible {
 }
 
 /* ==========================================================================
-   Northstar Benefits — its own distinct product identity (navy/blue),
-   deliberately different from ShowOnce's green/serif look.
+   WaitingRoom.gov — India Post PLI / NIC / PIB era portal styling.
    ========================================================================== */
 
 .northstar-app {
-  --ns-ink: #16233d;
-  --ns-muted: #5b6b85;
-  --ns-line: #e1e6f0;
-  --ns-accent: #2f5fed;
-  --ns-accent-dark: #1c3fb8;
-  --ns-surface: #f6f8fc;
+  --ns-ink: #000;
+  --ns-muted: #333;
+  --ns-line: #999;
+  --ns-line-light: #ccc;
+  --ns-accent: #005da3;
+  --ns-accent-dark: #003d73;
+  --ns-accent-red: #cc0000;
+  --ns-link: #0000ee;
+  --ns-surface: #fff;
+  --ns-panel: #fff;
+  --ns-highlight: #ffffcc;
+  --ns-font-ui: Arial, Helvetica, sans-serif;
+  --ns-font-small: Verdana, Geneva, sans-serif;
+  --ns-font-prose: "Times New Roman", Times, serif;
 
   display: flex;
   width: 100%;
+  min-width: 0;
   min-height: 100%;
   flex: 1;
   flex-direction: column;
+  overflow-x: hidden;
   background: var(--ns-surface);
   color: var(--ns-ink);
-  font-family: inherit;
+  font-family: var(--ns-font-ui);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.northstar-app__header {
+/* Verdana — small chrome, labels, table headers */
+.northstar-app__topbar,
+.northstar-app__breadcrumb,
+.northstar-app__last-updated,
+.northstar-app__marquee,
+.northstar-app__footer,
+.northstar-app__footer-links,
+.northstar-app__footer-table,
+.northstar-app__dept,
+.northstar-section-label,
+.northstar-screen__heading .eyebrow,
+.status-chip,
+.coverage-card__label,
+.overview-stats small,
+.detail-facts small,
+.review-summary small,
+.profile-facts small,
+.renewal-wizard__steps li {
+  font-family: var(--ns-font-small);
+}
+
+/* Times New Roman — notices, descriptions, long-form copy */
+.northstar-screen__heading p,
+.northstar-app__hint,
+.northstar-app__error,
+.northstar-app__footer-disclaimer,
+.empty-panel,
+.empty-panel span,
+.coverage-row small,
+.document-row small,
+.coverage-card__price,
+.radio-option,
+.toggle-row,
+.upcoming-card,
+.renewal-done {
+  font-family: var(--ns-font-prose);
+}
+
+/* Arial — navigation, tables, headings, controls */
+.northstar-app__brand,
+.northstar-app__nav button,
+.northstar-app .button,
+.northstar-screen__heading h1,
+.coverage-card strong,
+.overview-stats strong,
+.detail-facts strong,
+.review-summary strong,
+.profile-facts strong,
+.coverage-row strong,
+.dependents-list__row strong,
+.document-row strong,
+.upcoming-card strong,
+.renewal-done h1,
+.empty-panel strong {
+  font-family: var(--ns-font-ui);
+}
+
+.northstar-app__topbar {
   display: flex;
-  height: 56px;
-  flex: 0 0 auto;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--ns-line);
-  padding: 0 22px;
-  background: #fff;
+  gap: 8px;
+  border-bottom: 1px solid #004578;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, #1a4480 0%, #003366 100%);
+  color: #fff;
+  font-size: 11px;
+}
+
+.northstar-app__topbar-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #cce5ff;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.northstar-app__topbar-sep,
+.northstar-app__footer-sep {
+  color: rgb(255 255 255 / 55%);
+}
+
+.northstar-app__topbar-end {
+  margin-left: auto;
+  color: #e8f0fa;
+}
+
+.northstar-app__banner {
+  border-bottom: 4px solid var(--ns-accent-red);
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #1a4480 0%, #003366 100%);
+  color: #fff;
+}
+
+.northstar-app__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .northstar-app__brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.northstar-app__mark {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--ns-accent);
-  color: white;
-  font-family: inherit;
-  font-size: 13px;
-}
-
-.northstar-app__member {
-  color: var(--ns-muted);
-  font-size: 10px;
+.northstar-app__dept {
+  color: #c8d9ef;
+  font-size: 11px;
   font-weight: 700;
 }
 
-.northstar-app__layout {
+.northstar-app__ads {
+  width: 100%;
+  min-width: 0;
+  border-bottom: 1px solid var(--ns-line);
+  background: #fff;
+}
+
+.northstar-app__marquee {
+  overflow: hidden;
+  width: 100%;
+  border-bottom: 1px solid var(--ns-line-light);
+  padding: 4px 0;
+  background: #fff;
+  color: var(--ns-ink);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.northstar-app__marquee-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 100%;
+  white-space: nowrap;
+  animation: northstar-marquee 35s linear infinite;
+}
+
+.northstar-app__marquee-chunk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.northstar-app__marquee-new {
+  flex: 0 0 auto;
+  width: auto;
+  height: 22px;
+}
+
+.northstar-app__marquee-text em {
+  color: var(--ns-link);
+  font-style: italic;
+  font-weight: 400;
+}
+
+@keyframes northstar-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.northstar-app__ad-banners {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.northstar-app__ad-banner-cell {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
   min-height: 0;
-  flex: 1;
-  grid-template-columns: 168px 1fr;
-  align-items: stretch;
+  height: 100%;
+}
+
+.northstar-app__ad-banner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+  object-position: center;
+}
+
+.northstar-app__ad-banner-cell--tablet,
+.northstar-app__ad-banner-cell--desktop {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .northstar-app__ad-banners {
+    height: 72px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .northstar-app__ad-banner-cell--tablet {
+    display: block;
+    border-left: 1px solid var(--ns-line-light);
+  }
+}
+
+@media (min-width: 1024px) {
+  .northstar-app__ad-banners {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .northstar-app__ad-banner-cell--desktop {
+    display: block;
+    border-left: 1px solid var(--ns-line-light);
+  }
 }
 
 .northstar-app__nav {
   display: flex;
-  height: 100%;
-  flex-direction: column;
-  gap: 3px;
-  border-right: 1px solid var(--ns-line);
-  padding: 18px 12px;
-  background: #fff;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid #004578;
+  background: var(--ns-accent);
 }
 
 .northstar-app__nav button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  border: 0;
-  border-radius: 8px;
-  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-right: 1px solid rgb(255 255 255 / 20%);
+  margin: 0;
+  padding: 7px 14px;
   background: transparent;
-  color: var(--ns-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-align: left;
+  color: #fff;
   cursor: pointer;
+  font-family: var(--ns-font-ui);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.northstar-app__nav button svg {
-  width: 15px;
+.northstar-app__nav button:hover {
+  background: rgb(255 255 255 / 12%);
 }
 
 .northstar-app__nav-active {
-  background: #eaf0ff;
-  color: var(--ns-accent-dark);
+  border: 1px solid var(--ns-line-light) !important;
+  background: #fff !important;
+  color: var(--ns-accent-dark) !important;
+}
+
+.northstar-app__last-updated {
+  margin: 0;
+  border-bottom: 1px solid var(--ns-line-light);
+  padding: 4px 10px;
+  background: #f5f5f5;
+  color: #444;
+  font-size: 10px;
+  text-align: right;
+}
+
+.northstar-app__breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--ns-line-light);
+  padding: 5px 10px;
+  background: #ececec;
+  color: #333;
+  font-size: 10px;
+}
+
+.northstar-app__breadcrumb strong {
+  color: var(--ns-accent-red);
+  font-weight: 700;
 }
 
 .northstar-app__main {
-  max-width: 640px;
-  padding: 32px 30px 60px;
+  flex: 1;
+  max-width: none;
+  padding: 10px;
+  background: #f0f0f0;
+}
+
+.northstar-app__main > .northstar-screen,
+.northstar-app__main > .northstar-app__error {
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--ns-line);
+  padding: 14px 16px 18px;
+  background: var(--ns-panel);
 }
 
 .northstar-app__error {
-  margin: 0 0 16px;
-  border: 1px solid #f3c9c9;
-  border-radius: 9px;
+  margin: 0 auto 12px;
+  border: 1px solid var(--ns-accent-red);
   padding: 10px 12px;
-  background: #fdeded;
-  color: #a13c3c;
-  font-size: 11px;
+  background: #fff;
+  color: var(--ns-accent-red);
+  font-size: 12px;
 }
 
 .northstar-app__hint {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-line-light);
+  background: #ffffee;
   color: var(--ns-muted);
+  font-size: 12px;
+}
+
+.northstar-app__footer {
+  border-top: 2px solid var(--ns-accent);
+  padding: 10px 12px 14px;
+  background: #ececec;
+  color: #333;
+  font-size: 10px;
+  text-align: center;
+}
+
+.northstar-app__footer-links,
+.northstar-app__footer-table {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--ns-link);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.northstar-app__footer-disclaimer {
+  max-width: 720px;
+  margin: 8px auto 0;
+  color: #444;
   font-size: 11px;
-  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.northstar-section-label,
+.northstar-screen__heading .eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ns-accent-red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .northstar-screen__heading h1 {
-  margin: 6px 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  margin: 4px 0 8px;
+  border-bottom: 1px solid var(--ns-line);
+  padding-bottom: 6px;
+  color: var(--ns-accent-dark);
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .northstar-screen__heading p {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: var(--ns-muted);
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .coverage-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 18px 0;
+  gap: 0;
+  margin: 16px 0;
+  border: 1px solid var(--ns-line);
 }
 
 .coverage-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  border: 1px solid var(--ns-line);
-  border-radius: 12px;
-  padding: 16px;
-  background: #fff;
+  gap: 4px;
+  border-right: 1px solid var(--ns-line);
+  padding: 12px 14px;
+  background: var(--ns-panel);
+}
+
+.coverage-card:last-child {
+  border-right: 0;
 }
 
 .coverage-card--static {
-  background: #fafbfd;
-  opacity: 0.85;
+  background: #fafafa;
 }
 
 .coverage-card__label {
-  color: var(--ns-muted);
-  font-size: 9px;
-  font-weight: 800;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .coverage-card strong {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .coverage-card__price {
-  color: var(--ns-muted);
-  font-size: 10px;
+  color: #555;
+  font-size: 11px;
 }
 
 .status-chip {
-  display: inline-flex;
+  display: inline-block;
   align-self: flex-start;
-  border-radius: 999px;
-  padding: 3px 9px;
-  font-size: 8px;
-  font-weight: 800;
+  margin-top: 4px;
+  border: 1px solid var(--ns-line);
+  padding: 2px 8px;
+  background: #f4f4f4;
+  color: #333;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .status-chip--active {
-  background: #e1f5e6;
-  color: #227a4a;
+  border-color: #669966;
+  background: #eef7ee;
+  color: #226622;
 }
 
 .status-chip--muted {
-  background: #eef0f4;
-  color: var(--ns-muted);
+  background: #f4f4f4;
+  color: #666;
 }
 
 .status-chip--warn {
-  background: #fff1d8;
-  color: #93610f;
+  border-color: #cc9900;
+  background: var(--ns-highlight);
+  color: #664400;
 }
 
 .overview-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin: 18px 0;
+  gap: 0;
+  margin: 16px 0;
+  border: 1px solid var(--ns-line);
 }
 
 .overview-stats > div {
-  border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
+  border-right: 1px solid var(--ns-line);
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.overview-stats > div:last-child {
+  border-right: 0;
 }
 
 .overview-stats small {
   display: block;
-  color: var(--ns-muted);
-  font-size: 8px;
-  font-weight: 800;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .overview-stats strong {
   display: block;
-  margin-top: 5px;
-  font-size: 11px;
+  margin-top: 4px;
+  font-size: 12px;
 }
 
 .upcoming-card {
@@ -3649,15 +4080,14 @@ input[type='checkbox']:focus-visible {
   justify-content: space-between;
   gap: 12px;
   margin-top: 8px;
-  border: 1px solid var(--ns-line);
-  border-radius: 12px;
-  padding: 16px;
-  background: #eef2ff;
+  border: 1px solid #cc9900;
+  padding: 12px 14px;
+  background: var(--ns-highlight);
 }
 
 .upcoming-card strong {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 13px;
 }
 
@@ -3665,61 +4095,66 @@ input[type='checkbox']:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 0;
-  border-radius: 9px;
-  padding: 10px 14px;
-  font-size: 11px;
-  font-weight: 800;
+  border: 1px solid #666;
+  padding: 6px 14px;
+  background: linear-gradient(180deg, #f5f5f5 0%, #ddd 100%);
+  color: #222;
   cursor: pointer;
+  font-family: var(--ns-font-ui);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .northstar-app .button svg {
-  width: 13px;
+  width: 12px;
 }
 
 .northstar-app .button--primary {
-  background: var(--ns-accent);
-  color: white;
+  border-color: #004578;
+  background: linear-gradient(180deg, #0066b3 0%, #005da3 100%);
+  color: #fff;
 }
 
 .northstar-app .button--primary:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .northstar-app .button--large {
-  padding: 12px 18px;
-  font-size: 12px;
+  padding: 8px 18px;
+  font-size: 13px;
 }
 
 .northstar-app .button--ghost {
-  border: 1px solid var(--ns-line);
   background: #fff;
-  color: var(--ns-ink);
 }
 
 .northstar-app .button--ghost:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .coverage-row {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 0;
   border: 1px solid var(--ns-line);
-  border-radius: 12px;
-  padding: 14px;
-  background: #fff;
+  border-top: 0;
+  padding: 12px 14px;
+  background: var(--ns-panel);
   text-align: left;
   cursor: pointer;
 }
 
+.coverage-row:first-of-type {
+  border-top: 1px solid var(--ns-line);
+}
+
 .coverage-row--static {
   cursor: default;
-  opacity: 0.85;
+  background: #fafafa;
 }
 
 .coverage-row > span:first-child {
@@ -3732,95 +4167,127 @@ input[type='checkbox']:focus-visible {
 }
 
 .coverage-row small {
-  margin-top: 3px;
-  color: var(--ns-muted);
-  font-size: 9px;
+  margin-top: 2px;
+  color: #666;
+  font-size: 11px;
 }
 
 .coverage-row svg {
-  width: 14px;
-  color: var(--ns-muted);
+  width: 12px;
+  color: #666;
 }
 
 .detail-facts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 16px 0 22px;
+  gap: 0;
+  margin: 16px 0 20px;
+  border: 1px solid var(--ns-line);
 }
 
 .detail-facts > div {
-  border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
+  border-right: 1px solid var(--ns-line);
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.detail-facts > div:last-child {
+  border-right: 0;
 }
 
 .detail-facts small {
   display: block;
-  color: var(--ns-muted);
-  font-size: 8px;
-  font-weight: 800;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .detail-facts strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 13px;
 }
 
 .renewal-wizard__steps {
   display: flex;
-  gap: 16px;
-  margin: 0 0 20px;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0 0 16px;
   padding: 0;
-  color: var(--ns-muted);
-  font-size: 9px;
-  font-weight: 800;
+  border: 1px solid var(--ns-line);
   list-style: none;
+}
+
+.renewal-wizard__steps li {
+  flex: 1;
+  min-width: 80px;
+  border-right: 1px solid var(--ns-line);
+  padding: 8px 10px;
+  background: #eee;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
   text-transform: uppercase;
 }
 
+.renewal-wizard__steps li:last-child {
+  border-right: 0;
+}
+
 .renewal-wizard__step--active {
-  color: var(--ns-accent-dark);
+  background: var(--ns-highlight);
+  color: #333;
 }
 
 .radio-row {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 0;
   margin: 16px 0;
+  border: 1px solid var(--ns-line);
 }
 
 .radio-option {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--ns-line);
-  border-radius: 9px;
-  padding: 12px 16px;
-  font-size: 11px;
+  border-right: 1px solid var(--ns-line);
+  padding: 10px 14px;
+  background: #fafafa;
+  font-size: 12px;
   font-weight: 700;
+}
+
+.radio-option:last-child {
+  border-right: 0;
 }
 
 .toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 13px 15px;
-  background: #fff;
-  font-size: 11px;
+  border-top: 0;
+  padding: 10px 12px;
+  background: #fafafa;
+  font-size: 12px;
   font-weight: 700;
+}
+
+.toggle-row:first-of-type {
+  border-top: 1px solid var(--ns-line);
+  margin-top: 12px;
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 38px;
-  height: 22px;
+  width: 36px;
+  height: 20px;
 }
 
 .switch input {
@@ -3832,26 +4299,24 @@ input[type='checkbox']:focus-visible {
 .switch__track {
   position: absolute;
   display: block;
-  border-radius: 999px;
-  background: #d5dae4;
+  border: 1px solid #888;
+  background: #ddd;
   inset: 0;
-  transition: background 150ms ease;
 }
 
 .switch__track::after {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 1px solid #888;
   content: "";
-  transition: transform 150ms ease;
 }
 
 .switch input:checked + .switch__track {
-  background: var(--ns-accent);
+  background: #cce0ff;
 }
 
 .switch input:checked + .switch__track::after {
@@ -3861,76 +4326,86 @@ input[type='checkbox']:focus-visible {
 .review-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 16px 0 24px;
+  gap: 0;
+  margin: 16px 0 20px;
+  border: 1px solid var(--ns-line);
 }
 
 .review-summary > div {
-  border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
+  border-right: 1px solid var(--ns-line);
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.review-summary > div:nth-child(3n) {
+  border-right: 0;
 }
 
 .review-summary small {
   display: block;
-  color: var(--ns-muted);
-  font-size: 8px;
-  font-weight: 800;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .review-summary strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 12px;
 }
 
 .renewal-done {
-  padding-top: 40px;
+  padding-top: 20px;
   text-align: center;
 }
 
 .renewal-done__mark {
   display: grid;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   place-items: center;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  background: #e1f5e6;
-  color: #227a4a;
+  margin: 0 auto 14px;
+  border: 2px solid #669966;
+  background: #eef7ee;
+  color: #226622;
 }
 
 .renewal-done h1 {
   margin: 0 0 8px;
+  color: var(--ns-accent-dark);
 }
 
 .dependents-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
   margin: 16px 0;
+  border: 1px solid var(--ns-line);
 }
 
 .dependents-list__row {
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
+  border-top: 1px solid var(--ns-line);
+  padding: 10px 12px;
+  background: var(--ns-panel);
+}
+
+.dependents-list__row:first-child {
+  border-top: 0;
 }
 
 .dependents-list__avatar {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   place-items: center;
-  border-radius: 50%;
-  background: #eaf0ff;
-  color: var(--ns-accent-dark);
-  font-weight: 800;
+  border: 1px solid var(--ns-line);
+  background: #eee;
+  color: #333;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .dependents-list__row strong {
@@ -3940,75 +4415,119 @@ input[type='checkbox']:focus-visible {
 .empty-panel {
   display: grid;
   gap: 6px;
-  padding: 40px 20px;
+  padding: 32px 16px;
   border: 1px dashed var(--ns-line);
-  border-radius: 12px;
-  color: var(--ns-muted);
+  color: #666;
   text-align: center;
 }
 
 .empty-panel svg {
   margin: 0 auto;
-  color: #b7c0d6;
+  color: #999;
 }
 
 .empty-panel strong {
-  color: var(--ns-ink);
-  font-size: 12px;
+  color: #333;
+  font-size: 13px;
 }
 
 .empty-panel span {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .document-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
   border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 14px;
-  background: #fff;
+  padding: 12px 14px;
+  background: #fafafa;
 }
 
 .document-row svg {
-  color: var(--ns-muted);
+  color: #666;
 }
 
 .document-row small {
   display: block;
   margin-top: 2px;
-  color: var(--ns-muted);
-  font-size: 9px;
+  color: #666;
+  font-size: 11px;
 }
 
 .profile-facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0;
   margin-top: 16px;
+  border: 1px solid var(--ns-line);
 }
 
 .profile-facts > div {
-  border: 1px solid var(--ns-line);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
+  border-right: 1px solid var(--ns-line);
+  border-bottom: 1px solid var(--ns-line);
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.profile-facts > div:nth-child(2n) {
+  border-right: 0;
+}
+
+.profile-facts > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
 }
 
 .profile-facts small {
   display: block;
-  color: var(--ns-muted);
-  font-size: 8px;
-  font-weight: 800;
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .profile-facts strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .northstar-app__brand {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .northstar-app__marquee {
+    font-size: 10px;
+  }
+
+  .northstar-app__marquee-new {
+    height: 18px;
+  }
+
+  .northstar-app__footer-links,
+  .northstar-app__footer-table {
+    font-size: 9px;
+  }
+
+  .coverage-cards,
+  .overview-stats,
+  .detail-facts,
+  .review-summary,
+  .profile-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .coverage-card,
+  .overview-stats > div,
+  .detail-facts > div,
+  .review-summary > div,
+  .profile-facts > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--ns-line);
+  }
 }
 
 /* ==========================================================================
