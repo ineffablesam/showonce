@@ -1,0 +1,29 @@
+{
+  "name": "showonce-remotion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:1": "remotion render src/index.ts OpeningBubbles out/1-opening-bubbles.mov --codec=prores --prores-profile=4444",
+    "render:2": "remotion render src/index.ts PainPointReveal out/2-pain-point-reveal.mov --codec=prores --prores-profile=4444",
+    "render:3": "remotion render src/index.ts SendLinkPopup out/3-send-link-popup.mov --codec=prores --prores-profile=4444",
+    "render:all": "npm run render:1 && npm run render:2 && npm run render:3"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.290",
+    "@remotion/fonts": "4.0.290",
+    "@remotion/media-utils": "4.0.290",
+    "@remotion/zod-types": "4.0.290",
+    "lucide-react": "^0.469.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "remotion": "4.0.290",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -139,3 +139,11 @@ dist
 .yarn/install-state.gz
 .pnp.*
 .env*
+
+# Video files — too large for a normal git push (GitHub rejects >100MB
+# anyway), keep these local/shared out-of-band instead.
+*.mp4
+*.mov
+*.mkv
+*.avi
+remotion/out/
