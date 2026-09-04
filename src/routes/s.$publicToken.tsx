@@ -210,6 +210,10 @@ function RecipientRoute() {
     [account.data, preview, publicToken, setRun, workflow.data],
   )
 
+  const onRequestHumanApproval = useCallback(() => {
+    void openApproval()
+  }, [openApproval])
+
   const webmcp = useRecipientWebMCP({
     publicToken,
     handoff: handoff.data ?? null,
@@ -219,9 +223,7 @@ function RecipientRoute() {
     onAccount: setAccount,
     onRun: setRun,
     onRequestHelper: askHelper,
-    onRequestHumanApproval: () => {
-      void openApproval()
-    },
+    onRequestHumanApproval,
   })
 
   const runNorthstarCommand = useCallback(
@@ -541,11 +543,19 @@ function useRecipientWebMCP({
   const accountRef = useRef(account)
   const handoffRef = useRef(handoff)
   const runRef = useRef(run)
+  const onAccountRef = useRef(onAccount)
+  const onRunRef = useRef(onRun)
+  const onRequestHelperRef = useRef(onRequestHelper)
+  const onRequestHumanApprovalRef = useRef(onRequestHumanApproval)
   const startedRef = useRef(false)
   const statusTransitionRef = useRef<Promise<void>>(Promise.resolve())
   accountRef.current = account
   handoffRef.current = handoff
   runRef.current = run
+  onAccountRef.current = onAccount
+  onRunRef.current = onRun
+  onRequestHelperRef.current = onRequestHelper
+  onRequestHumanApprovalRef.current = onRequestHumanApproval
 
   const markRunning = useCallback(async () => {
     if (startedRef.current) {
@@ -576,7 +586,7 @@ function useRecipientWebMCP({
         command,
       )
       accountRef.current = result.state
-      onAccount(result.state)
+      onAccountRef.current(result.state)
       void repositories.activity.appendForHandoffToken(publicToken, {
         id: `activity-${result.event.id}`,
         kind: 'command',
@@ -595,10 +605,47 @@ function useRecipientWebMCP({
       }
       return result
     },
-    [markRunning, onAccount, publicToken],
+    [markRunning, publicToken],
   )
 
-  const activeHandoff = handoff
+  const onToolResult = useCallback(
+    (name: ShowOnceToolName, result: unknown) => {
+      if (name === 'showonce_compare_to_handoff') {
+        onRunRef.current({ phase: 'adapted' })
+        if (
+          typeof result === 'object' &&
+          result !== null &&
+          'needsJudgment' in result &&
+          result.needsJudgment === true
+        ) {
+          statusTransitionRef.current = statusTransitionRef.current.then(() =>
+            repositories.handoffs
+              .transitionByPublicToken(publicToken, 'needs_input')
+              .then(() => undefined),
+          )
+        }
+      }
+      if (
+        name === 'benefits_select_plan' &&
+        typeof result === 'object' &&
+        result !== null &&
+        'ok' in result &&
+        result.ok === true &&
+        'state' in result &&
+        typeof result.state === 'object' &&
+        result.state !== null &&
+        'selectedPlanId' in result.state &&
+        typeof result.state.selectedPlanId === 'string'
+      ) {
+        onRunRef.current({
+          phase: 'confirmation',
+          selectedPlanId: result.state.selectedPlanId,
+        })
+      }
+    },
+    [publicToken],
+  )
+
   const context = useMemo(
     () => ({
       document:
@@ -617,58 +664,16 @@ function useRecipientWebMCP({
         return accountRef.current
       },
       getInitialState: createDemoAccount,
-      getActiveHandoff: () => activeHandoff,
-      requestHelper: onRequestHelper,
+      getActiveHandoff: () => handoffRef.current,
+      requestHelper: () => onRequestHelperRef.current(),
       getActiveHelpRequestId: () => runRef.current?.helperRequestId,
-      onRequestHumanApproval,
+      onRequestHumanApproval: () => onRequestHumanApprovalRef.current(),
       onToolStart: markRunning,
-      onToolResult: (name: ShowOnceToolName, result: unknown) => {
-        if (name === 'showonce_compare_to_handoff') {
-          onRun({ phase: 'adapted' })
-          if (
-            typeof result === 'object' &&
-            result !== null &&
-            'needsJudgment' in result &&
-            result.needsJudgment === true
-          ) {
-            statusTransitionRef.current = statusTransitionRef.current.then(() =>
-              repositories.handoffs
-                .transitionByPublicToken(publicToken, 'needs_input')
-                .then(() => undefined),
-            )
-          }
-        }
-        if (
-          name === 'benefits_select_plan' &&
-          typeof result === 'object' &&
-          result !== null &&
-          'ok' in result &&
-          result.ok === true &&
-          'state' in result &&
-          typeof result.state === 'object' &&
-          result.state !== null &&
-          'selectedPlanId' in result.state &&
-          typeof result.state.selectedPlanId === 'string'
-        ) {
-          onRun({
-            phase: 'confirmation',
-            selectedPlanId: result.state.selectedPlanId,
-          })
-        }
-      },
+      onToolResult,
       now: Date.now,
       createId: () => crypto.randomUUID(),
     }),
-    [
-      activeHandoff,
-      execute,
-      markRunning,
-      onRequestHumanApproval,
-      onRequestHelper,
-      onRun,
-      preview,
-      publicToken,
-    ],
+    [execute, markRunning, onToolResult, preview, publicToken],
   )
   return useWebMCP('recipient', context, !preview)
 }

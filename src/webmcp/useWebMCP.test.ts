@@ -21,6 +21,7 @@ const harness = vi.hoisted(() => ({
 
 vi.mock('react', () => ({
   useState: <T>(initial: T) => [initial, vi.fn()] as const,
+  useRef: <T>(initial: T) => ({ current: initial }),
   useEffect: (effect: () => void | (() => void), dependencies: unknown[]) => {
     harness.dependencies.push(dependencies)
     const cleanup = effect()

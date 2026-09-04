@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { registerWebMCPTools } from './registerTools'
 import type {
@@ -36,6 +36,8 @@ export function useWebMCP(
     status: 'registering',
     registeredToolNames: [],
   })
+  const contextRef = useRef(context)
+  contextRef.current = context
 
   useEffect(() => {
     if (!enabled) {
@@ -48,22 +50,7 @@ export function useWebMCP(
     setState({ status: 'registering', registeredToolNames: [] })
 
     void registerWebMCPTools(
-      {
-        document: contextDocument,
-        scope,
-        repositories,
-        execute,
-        compare,
-        getRecipientState,
-        getInitialState,
-        now,
-        createId,
-        getActiveHandoff,
-        requestHelper,
-        getActiveHelpRequestId,
-        onToolStart,
-        onToolResult,
-      },
+      { ...contextRef.current, scope },
       { signal: controller.signal },
     )
       .then((registration) => {
@@ -92,23 +79,7 @@ export function useWebMCP(
       controller.abort()
       dispose?.()
     }
-  }, [
-    contextDocument,
-    repositories,
-    execute,
-    compare,
-    getRecipientState,
-    getInitialState,
-    now,
-    createId,
-    getActiveHandoff,
-    requestHelper,
-    getActiveHelpRequestId,
-    onToolStart,
-    onToolResult,
-    scope,
-    enabled,
-  ])
+  }, [contextDocument, scope, enabled])
 
   return state
 }

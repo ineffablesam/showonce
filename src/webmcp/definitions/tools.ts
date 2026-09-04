@@ -14,8 +14,9 @@ export const SHOWONCE_TOOLS = [
   {
     name: 'showonce_get_handoff',
     title: 'Inspect a handoff',
-    description: 'Returns the active sanitized portable handoff.',
-    inputSchema: objectSchema({ id: { type: 'string' } }, ['id']),
+    description:
+      'Returns the active sanitized portable handoff for the current recipient page. Pass id only when inspecting from the library.',
+    inputSchema: objectSchema({ id: { type: 'string' } }),
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     scopes: ['library', 'recipient'],
   },
