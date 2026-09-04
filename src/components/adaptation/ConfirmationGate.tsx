@@ -107,7 +107,7 @@ export function ConfirmationGate({
           </div>
           <div>
             <dt>Address</dt>
-            <dd>Unchanged</dd>
+            <dd>{account.address.trim() || 'On file'}</dd>
           </div>
         </dl>
 

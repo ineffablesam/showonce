@@ -1,10 +1,14 @@
 import { getCookie, setCookie } from '@tanstack/react-start/server'
 
-export const RECIPIENT_COOKIE_NAME = '__Host-showonce-recipient'
+const isProduction = process.env.NODE_ENV === 'production'
+
+export const RECIPIENT_COOKIE_NAME = isProduction
+  ? '__Host-showonce-recipient'
+  : 'showonce-recipient'
 export const RECIPIENT_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: true,
+  secure: isProduction,
   path: '/',
 }
 

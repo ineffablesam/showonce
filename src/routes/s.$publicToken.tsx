@@ -197,6 +197,11 @@ function RecipientRoute() {
       if (preview || !workflow.data || !account.data) return
       const selectedPlanId = planId ?? account.data.selectedPlanId
       if (!selectedPlanId) return
+      // Agent tools may open approval before markRunning finishes — ensure
+      // opened → running → waiting_confirmation so submit can complete.
+      await repositories.handoffs
+        .transitionByPublicToken(publicToken, 'running')
+        .catch(() => undefined)
       await repositories.handoffs
         .transitionByPublicToken(publicToken, 'waiting_confirmation')
         .catch(() => undefined)
@@ -366,11 +371,20 @@ function RecipientRoute() {
 
   const attestAndSubmit = async () => {
     if (preview) return
-    if (
-      !account.data ||
-      !workflow.data ||
-      account.data.submittedAt !== null
-    ) return
+    if (!account.data || !workflow.data) {
+      setSubmissionError(
+        'Submission context is unavailable. Refresh the page and try again.',
+      )
+      return
+    }
+    if (account.data.submittedAt !== null) {
+      setSubmissionError('This renewal was already submitted.')
+      return
+    }
+    if (!account.data.selectedPlanId) {
+      setSubmissionError('Select a plan before submitting.')
+      return
+    }
     setSubmitting(true)
     setSubmissionError(undefined)
     try {
@@ -393,9 +407,19 @@ function RecipientRoute() {
           result.run,
         )
         setSubmissionError(
-          'Completion failed. Your renewal was not submitted; please retry.',
+          result.reason === 'confirmation_expired'
+            ? 'Your confirmation expired. Close this dialog and ask your assistant to prepare the renewal again.'
+            : result.reason === 'submission_refused'
+              ? 'Submission was refused. Make sure a plan is selected and try again.'
+              : 'Completion failed. Your renewal was not submitted; please retry.',
         )
       }
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : 'Could not submit your renewal. Please try again.',
+      )
     } finally {
       setSubmitting(false)
     }

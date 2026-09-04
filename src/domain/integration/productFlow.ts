@@ -459,11 +459,11 @@ export async function completeRecipientSubmission(
   // Reaching the AWAITING HUMAN APPROVAL screen may have happened from
   // 'running' or, when the comparison flagged a material difference,
   // 'needs_input' — both are valid predecessors of 'waiting_confirmation'.
-  // Advancing here (idempotently; a no-op if already there) guarantees
-  // `.complete()` below always sees an allowed source status regardless of
-  // which path the recipient took to get here. Best-effort: if this fails
-  // (e.g. a test double with no backing handoff record), fall through and
-  // let `.complete()`'s own error handling decide the outcome.
+  // Some paths still leave the handoff at 'opened' if markRunning has not
+  // finished yet, so step through running first.
+  await repositories.handoffs
+    .transitionByPublicToken(options.handoffToken, 'running', timestamp)
+    .catch(() => undefined)
   await repositories.handoffs
     .transitionByPublicToken(options.handoffToken, 'waiting_confirmation', timestamp)
     .catch(() => undefined)
