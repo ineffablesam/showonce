@@ -573,6 +573,14 @@ function useRecipientWebMCP({
   const onRequestHumanApprovalRef = useRef(onRequestHumanApproval)
   const startedRef = useRef(false)
   const statusTransitionRef = useRef<Promise<void>>(Promise.resolve())
+  const judgmentRef = useRef<{
+    demonstratedPlanId: string
+    demonstratedPrice?: number
+  } | null>(null)
+  const planAuthorizationRef = useRef<{
+    planId: string
+    authorizedBy: 'human' | 'helper'
+  } | null>(null)
   accountRef.current = account
   handoffRef.current = handoff
   runRef.current = run
@@ -606,6 +614,14 @@ function useRecipientWebMCP({
           source: 'webmcp',
           now: Date.now(),
           createId: () => crypto.randomUUID(),
+          planSelectionGuard: judgmentRef.current
+            ? {
+                demonstratedPlanId: judgmentRef.current.demonstratedPlanId,
+                demonstratedPrice: judgmentRef.current.demonstratedPrice,
+                requiresJudgment: true,
+              }
+            : undefined,
+          planAuthorization: planAuthorizationRef.current ?? undefined,
         },
         command,
       )
@@ -642,11 +658,38 @@ function useRecipientWebMCP({
           'needsJudgment' in result &&
           result.needsJudgment === true
         ) {
+          const planStep = handoffRef.current?.procedure?.steps.find(
+            (step) => step.commandType === 'select_plan',
+          )
+          if (
+            planStep?.input.type === 'select_plan' &&
+            typeof planStep.input.planId === 'string'
+          ) {
+            judgmentRef.current = {
+              demonstratedPlanId: planStep.input.planId,
+              demonstratedPrice: planStep.input.observedMonthlyPrice,
+            }
+          }
           statusTransitionRef.current = statusTransitionRef.current.then(() =>
             repositories.handoffs
               .transitionByPublicToken(publicToken, 'needs_input')
               .then(() => undefined),
           )
+        }
+      }
+      if (name === 'showonce_get_helper_decision') {
+        if (
+          typeof result === 'object' &&
+          result !== null &&
+          'outcome' in result &&
+          result.outcome === 'recommend_plan' &&
+          'recommendedPlanId' in result &&
+          typeof result.recommendedPlanId === 'string'
+        ) {
+          planAuthorizationRef.current = {
+            planId: result.recommendedPlanId,
+            authorizedBy: 'helper',
+          }
         }
       }
       if (

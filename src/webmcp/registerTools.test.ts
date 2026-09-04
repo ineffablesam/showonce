@@ -430,6 +430,10 @@ describe('focused route-scoped WebMCP tools', () => {
 
     await expect(invoke('showonce_compare_to_handoff')).resolves.toMatchObject({
       needsJudgment: true,
+      agentGuidance: {
+        stopBeforePlanSelection: true,
+        suggestedQuestion: expect.stringContaining('Should I ask [name]?'),
+      },
     })
     await expect(invoke('benefits_apply_safe_preferences')).resolves.toMatchObject({
       ok: true,

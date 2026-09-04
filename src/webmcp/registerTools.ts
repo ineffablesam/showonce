@@ -1,5 +1,9 @@
 import type { ActivityEvent } from '../domain/model'
 import { assertHandoffPolicyAllows } from '../domain/sharing/handoffPolicy'
+import {
+  buildCompareAgentGuidance,
+  buildJudgmentRequiredGuidance,
+} from './compareAgentGuidance'
 import { SHOWONCE_TOOLS } from './definitions/tools'
 import type {
   ShowOnceToolDescriptor,
@@ -132,11 +136,17 @@ async function invoke(
           break
         }
         const recipient = context.getRecipientState()
-        result = context.compare(
+        const comparison = context.compare(
           handoff.procedure,
           context.getInitialState?.() ?? recipient,
           recipient,
         )
+        const agentGuidance = buildCompareAgentGuidance(
+          comparison,
+          handoff.procedure,
+          recipient,
+        )
+        result = agentGuidance ? { ...comparison, agentGuidance } : comparison
         break
       }
       case 'benefits_apply_safe_preferences': {
@@ -224,7 +234,23 @@ async function invoke(
           type: 'select_plan',
           planId,
         })
-        result = commandResult
+        if (!commandResult.ok && commandResult.reason === 'judgment_required') {
+          const handoff = context.getActiveHandoff?.()
+          const comparison =
+            handoff?.procedure && context.getInitialState
+              ? context.compare(
+                  handoff.procedure,
+                  context.getInitialState(),
+                  context.getRecipientState(),
+                )
+              : null
+          result = {
+            ...commandResult,
+            agentGuidance: buildJudgmentRequiredGuidance(comparison),
+          }
+        } else {
+          result = commandResult
+        }
         outcome = commandResult.ok ? 'applied' : 'refused'
         break
       }

@@ -48,7 +48,7 @@ export const SHOWONCE_TOOLS = [
     name: 'showonce_compare_to_handoff',
     title: 'Compare to handoff',
     description:
-      'Deterministically compares the handoff with current recipient state.',
+      'Compares the shared recording with this recipient account. When needsJudgment is true (price change or unavailable plan), stop before selecting a plan. Read agentGuidance in the result, explain the mismatch briefly, and ask the recipient "Should I ask [name]?" using the sender name from the conversation if they gave one. Wait for yes before calling showonce_request_helper.',
     inputSchema: objectSchema(),
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     scopes: ['recipient'],
@@ -97,7 +97,7 @@ export const SHOWONCE_TOOLS = [
     name: 'benefits_select_plan',
     title: 'Select a plan',
     description:
-      'Selects the renewal plan for this recipient. The connected WaitingRoom.gov page updates immediately.',
+      'Selects the renewal plan for this recipient. Do not call when showonce_compare_to_handoff returned needsJudgment true until the recipient agreed to ask the sender and showonce_get_helper_decision returned a recommendation (or the recipient explicitly chose a plan themselves).',
     inputSchema: objectSchema({ planId: { type: 'string' } }, ['planId']),
     annotations: { readOnlyHint: false },
     scopes: ['recipient'],
@@ -105,7 +105,8 @@ export const SHOWONCE_TOOLS = [
   {
     name: 'showonce_request_helper',
     title: 'Request helper decision',
-    description: 'Creates a minimum-information helper request.',
+    description:
+      'Asks the person who recorded the procedure to decide when pricing or availability differs. Call only after the recipient agrees (for example, they said yes to "Should I ask Samuel?"). Then poll showonce_get_helper_decision before selecting a plan.',
     inputSchema: objectSchema(),
     annotations: { readOnlyHint: false },
     scopes: ['recipient'],
