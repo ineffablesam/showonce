@@ -170,7 +170,7 @@ describe('connected ShowOnce product flow', () => {
       }),
     )
     expect(adaptation.needsJudgment).toBe(true)
-    expect(mom.address).toBe('121 Lincoln Street')
+    expect(mom.address).toBe('14 Cedar Lane')
     expect(mom.dependents).toEqual(['Avery', 'Casey'])
 
     const unavailable = compareProcedureToRecipient(

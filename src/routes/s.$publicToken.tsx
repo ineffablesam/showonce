@@ -14,7 +14,7 @@ import {
   attestAndSubmitRenewal,
   createDemoAccount,
   createHelpRequest,
-  loadRecipientAccount,
+  createRecipientAccount,
   createRecipientWorkflow,
   updateRecipientWorkflow,
 } from '../domain/integration/productFlow'
@@ -65,7 +65,7 @@ function RecipientRoute() {
   const [submitting, setSubmitting] = useState(false)
   const [helperError, setHelperError] = useState<string>()
   const [submissionError, setSubmissionError] = useState<string>()
-  const [addressConfirmed, setAddressConfirmed] = useState(true)
+  const [addressConfirmed, setAddressConfirmed] = useState(false)
   const accountId =
     scenario === 'normal' ? 'recipient-normal' : 'recipient-unavailable'
 
@@ -81,7 +81,9 @@ function RecipientRoute() {
   })
   const account = useQuery({
     queryKey: ['account', accountId],
-    queryFn: () => loadRecipientAccount(repositories, scenario),
+    queryFn: async () =>
+      (await repositories.accounts.get(accountId)) ??
+      createRecipientAccount(scenario),
   })
   const workflow = useQuery<RecipientWorkflowRun>({
     queryKey: ['recipient-run', publicToken, scenario, preview],
