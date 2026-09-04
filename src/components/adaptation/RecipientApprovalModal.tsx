@@ -25,16 +25,18 @@ export function RecipientApprovalModal({
   onClose: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const submitted = account.submittedAt !== null
+  const shouldShow = open && !submitted
 
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    if (open && !dialog.open) {
+    if (shouldShow && !dialog.open) {
       dialog.showModal()
-    } else if (!open && dialog.open) {
+    } else if (!shouldShow && dialog.open) {
       dialog.close()
     }
-  }, [open])
+  }, [shouldShow])
 
   return (
     <dialog

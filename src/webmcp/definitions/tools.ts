@@ -114,7 +114,8 @@ export const SHOWONCE_TOOLS = [
   {
     name: 'showonce_get_helper_decision',
     title: 'Get helper decision',
-    description: 'Returns the exact recommendation for the active request.',
+    description:
+      'Waits up to 2 minutes for the helper to respond, polling every 2 seconds. Returns their recommendation when ready. If still pending after waiting, call again to keep waiting — do not select a plan until a recommendation arrives.',
     inputSchema: objectSchema(),
     annotations: { readOnlyHint: true },
     scopes: ['recipient'],

@@ -311,6 +311,12 @@ function RecipientRoute() {
 
   const appliedDecisionRef = useRef<string | null>(null)
 
+  useEffect(() => {
+    if (account.data?.submittedAt !== null || workflow.data?.phase === 'complete') {
+      setApprovalOpen(false)
+    }
+  }, [account.data?.submittedAt, workflow.data?.phase])
+
   const choosePlan = useCallback(
     async (planId: string, source: 'human' | 'helper' = 'human') => {
       if (preview) return
@@ -581,9 +587,13 @@ function useRecipientWebMCP({
     planId: string
     authorizedBy: 'human' | 'helper'
   } | null>(null)
+  const activeHelpRequestIdRef = useRef<string | undefined>()
   accountRef.current = account
   handoffRef.current = handoff
   runRef.current = run
+  if (run?.helperRequestId) {
+    activeHelpRequestIdRef.current = run.helperRequestId
+  }
   onAccountRef.current = onAccount
   onRunRef.current = onRun
   onRequestHelperRef.current = onRequestHelper
@@ -732,8 +742,13 @@ function useRecipientWebMCP({
       },
       getInitialState: createDemoAccount,
       getActiveHandoff: () => handoffRef.current,
-      requestHelper: () => onRequestHelperRef.current(),
-      getActiveHelpRequestId: () => runRef.current?.helperRequestId,
+      requestHelper: async () => {
+        const request = await onRequestHelperRef.current()
+        activeHelpRequestIdRef.current = request.publicToken ?? request.id
+        return request
+      },
+      getActiveHelpRequestId: () =>
+        activeHelpRequestIdRef.current ?? runRef.current?.helperRequestId,
       onRequestHumanApproval: () => onRequestHumanApprovalRef.current(),
       onToolStart: markRunning,
       onToolResult,

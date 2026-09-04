@@ -5,6 +5,7 @@ import {
   buildJudgmentRequiredGuidance,
 } from './compareAgentGuidance'
 import { SHOWONCE_TOOLS } from './definitions/tools'
+import { waitForHelperDecision } from './waitForHelperDecision'
 import type {
   ShowOnceToolDescriptor,
   ShowOnceToolName,
@@ -278,9 +279,19 @@ async function invoke(
         break
       case 'showonce_get_helper_decision': {
         const requestId = context.getActiveHelpRequestId?.()
-        result = requestId
-          ? await context.repositories.decisions.pollByRequestToken(requestId)
-          : null
+        if (!requestId) {
+          outcome = 'refused'
+          result = {
+            ok: false,
+            reason: 'no_active_request',
+            message: 'Call showonce_request_helper first.',
+          }
+          break
+        }
+        result = await waitForHelperDecision(
+          () => context.repositories.decisions.pollByRequestToken(requestId),
+          signal,
+        )
         break
       }
       case 'benefits_prepare_renewal':
